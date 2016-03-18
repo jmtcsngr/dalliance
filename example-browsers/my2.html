@@ -1,0 +1,82 @@
+<!DOCTYPE html> 
+
+<html>
+
+<head>
+
+<style>
+</style>
+
+<title>Human GRCh37 :: Dalliance</title> 
+<script language="javascript" src="../build/dalliance-all.js"></script>
+
+<script language="javascript">
+  var b = new Browser({
+    chr:          '22',
+    viewStart:    16099055,
+    viewEnd:      16099570,
+    cookieKey:    'human-grc_h37',
+
+    coordSystem: {
+      speciesName: 'Human',
+      taxon: 9606,
+      auth: 'GRCh',
+      version: '37',
+      ucscName: 'hg19',
+    },
+
+    chains: {
+      hg18ToHg19: new Chainset('http://www.derkholm.net:8080/das/hg18ToHg19/', 'NCBI36', 'GRCh37',
+                               {
+                                  speciesName: 'Human',
+                                  taxon: 9606,
+                                  auth: 'GRCh',
+                                  version: 36
+                               })
+    },
+
+    sources:     [{name:                 'Genome',
+                   twoBitURI:            'http://www.biodalliance.org/datasets/hg19.2bit',
+                   tier_type:            'sequence',
+                   provides_entrypoints: true,
+                   pinned: true
+                  },
+                  {
+                    name: 'BAM',
+                    desc: "My bam file",
+                    bamURI: "http://ranger_server:port/file?directory=/seq/4950&region=22%3A16099055-16099570&irods=1&name=4950_1%231.bam",
+                  },
+                  
+                ],
+
+    setDocumentTitle: true,
+    uiPrefix: '../',
+
+    fullScreen: true,
+
+    hubs: [
+            'http://www.biodalliance.org/datasets/testhub/hub.txt',
+            'http://ftp.ebi.ac.uk/pub/databases/ensembl/encode/integration_data_jan2011/hub.txt',
+            {url: 'http://vizhub.wustl.edu/VizHub/RoadmapReleaseAll.txt', label: 'Roadmap Epigenome'}
+           ]
+  });
+  
+  
+  b.addFeatureInfoPlugin(function(f, info) {
+      info.add('Testing', 'This is a test!');
+  });
+
+  b.addViewListener(function(chr, min, max) {
+    var link = document.getElementById('enslink');
+    link.href = 'http://www.ensembl.org/Homo_sapiens/Location/View?r=' + chr + ':' + min + '-' + max;
+  });
+
+</script>
+</head>
+
+<body>
+<a href='http://www.ensembl.org/' id='enslink' target='_newtab'>Link to Ensembl</a>
+<div id='svgHolder'>Failed to load the Biodalliance genome browser.  Have you run "gulp"?</div>
+</body>
+</html>
+

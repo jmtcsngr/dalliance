@@ -1233,7 +1233,8 @@ BAMFeatureSource.prototype.init = function() {
         baiF = new BlobFetchable(this.bamSource.baiBlob);
     } else {
         bamF = new URLFetchable(this.bamSource.bamURI, {credentials: this.opts.credentials});
-        baiF = new URLFetchable(this.bamSource.baiURI || (this.bamSource.bamURI + '.bai'), {credentials: this.opts.credentials});
+        //baiF = new URLFetchable(this.bamSource.baiURI || (this.bamSource.bamURI + '.bai'), {credentials: this.opts.credentials});
+        baiF = new URLFetchable('http://ranger_server:port/4950_1_1.bam.bai');
     }
     makeBam(bamF, baiF, null, function(bam, err) {
         thisB.readiness = null;
@@ -1261,7 +1262,7 @@ BAMFeatureSource.prototype.fetch = function(chr, min, max, scale, types, pool, c
             thisB.busy--;
             thisB.notifyActivity();
             return callback(thisB.error || "Couldn't fetch BAM");
-        }
+        } if ( bam.records ) { var features = []; for ( var ri = 0; ri < bam.records.length; ri++ ) { var r = bam.records[ri], f = bamRecordToFeature(r, thisB.opts.bamGroup); if (f) { features.push(f); } } callback (null, features, 1000000000); }
 
         bam.fetch(chr, min, max, function(bamRecords, error) {
             thisB.busy--;

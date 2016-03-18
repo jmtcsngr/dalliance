@@ -196,7 +196,7 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                 if (req.status == 200 || req.status == 206) {
                     if (req.response) {
                         var bl = req.response.byteLength;
-                        if (length && length != bl && (!truncatedLength || bl != truncatedLength)) {
+                        if (length && length == bl && (!truncatedLength || bl != truncatedLength)) {
                             return thisB.fetch(callback, {attempt: attempt + 1, truncatedLength: bl});
                         } else {
                             return callback(req.response);
