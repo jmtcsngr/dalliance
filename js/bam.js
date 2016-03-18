@@ -99,6 +99,7 @@ function makeBam(data, bai, indexChunks, callback, attempted) {
     }, {timeout: 5000});
 }
 
+
 function makeBam2(data, bai, indexChunks, callback, attempted) {
     var bam = new BamFile();
     bam.data = data;
@@ -350,7 +351,7 @@ BamFile.prototype.fetch = function(chr, min, max, callback, opts) {
             var fetchMin = c.minv.block;
             var fetchMax = c.maxv.block + (1<<16); // *sigh*
             // console.log('fetching ' + fetchMin + ':' + fetchMax);
-            thisB.data.slice(fetchMin, fetchMax - fetchMin).fetch(function(r) {
+            thisB.data.fetch(function(r) { //thisB.data.slice(fetchMin, fetchMax - fetchMin).fetch(function(r) {
                 data = unbgzf(r, c.maxv.block - c.minv.block + 1);
                 return tramp();
             });
@@ -375,10 +376,10 @@ function BamRecord() {
 }
 
 BamFile.prototype.readBamRecords = function(ba, offset, sink, min, max, chrId, opts) {
-    while (true) {
+    while (true) { if ( offset >= ba.length ) { return true; }
         var blockSize = readInt(ba, offset);
         var blockEnd = offset + blockSize + 4;
-        if (blockEnd >= ba.length) {
+        if (blockEnd > ba.length) {
             return false;
         }
 
@@ -529,9 +530,85 @@ BamFile.prototype.readBamRecords = function(ba, offset, sink, min, max, chrId, o
     // Exits via top of loop.
 };
 
+function makeBam3(data, bai, indexChunks, callback, attempted) {
+    var bam = new BamFile();
+    bam.data = data;
+  
+    // Fills out bam.chrToIndex and bam.indexToChr based on the first few bytes of the BAM.
+    function parseBamHeader(r) {
+        if (!r) {
+            return callback(null, "Couldn't access BAM");
+        }
+
+        var unc = unbgzf(r, r.byteLength);
+        var uncba = new Uint8Array(unc);
+
+        var magic = readInt(uncba, 0);
+        if (magic != BAM_MAGIC) {
+            return callback(null, "Not a BAM file, magic=0x" + magic.toString(16));
+        }
+        var headLen = readInt(uncba, 4);
+        var header = '';
+        for (var i = 0; i < headLen; ++i) {
+            header += String.fromCharCode(uncba[i + 8]);
+        }
+
+        var nRef = readInt(uncba, headLen + 8);
+        var p = headLen + 12;
+
+        bam.chrToIndex = {};
+        bam.indexToChr = [];
+        for (var i = 0; i < nRef; ++i) {
+            var lName = readInt(uncba, p);
+            var name = '';
+            for (var j = 0; j < lName-1; ++j) {
+                name += String.fromCharCode(uncba[p + 4 + j]);
+            }
+            var lRef = readInt(uncba, p + lName + 4);
+            bam.chrToIndex[name] = i;
+            if (name.indexOf('chr') == 0) {
+                bam.chrToIndex[name.substring(3)] = i;
+            } else {
+                bam.chrToIndex['chr' + name] = i;
+            }
+            bam.indexToChr.push(name);
+
+            p = p + 8 + lName;
+        }
+        
+        console.log("Number of references " + nRef);
+        var totalOffset = headLen + 12; //Text part of header + 3 x 4 bytes (magic number, text length and # references)
+        //List of reference information
+        var FIELD_LENGTH_REFERENCE_NAME = 4;
+        var FIELD_LENGTH_REFERENCE_SEQUENCE = 4;
+        for ( i = 0; i < nRef; i++ ) {
+            var reference_name_length = readInt(uncba, totalOffset);
+            totalOffset += FIELD_LENGTH_REFERENCE_NAME;
+            totalOffset += reference_name_length;
+            totalOffset += FIELD_LENGTH_REFERENCE_SEQUENCE;
+        }
+        
+        console.log("Total offset " + totalOffset);
+        
+        var records = []
+        var min = 0;
+        var max = 3000000000;
+        var chrId = 21;
+        var opts = {};
+        
+        bam.readBamRecords(uncba, totalOffset, records, min, max, chrId, opts);
+
+        bam.records = records;
+        return callback(bam);        
+    }
+    
+    bam.data.fetch(parseBamHeader);
+    //Continue here
+}
+
 if (typeof(module) !== 'undefined') {
     module.exports = {
-        makeBam: makeBam,
+        makeBam: makeBam3,
         BAM_MAGIC: BAM_MAGIC,
         BAI_MAGIC: BAI_MAGIC,
         BamFlags: BamFlags
