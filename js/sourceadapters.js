@@ -42,7 +42,7 @@ if (typeof(require) !== 'undefined') {
     var makeBwg = bbi.makeBwg;
 
     var bam = require('./bam');
-    var makeBam = bam.makeBam;
+    var makeBam = bam.makeBam; var makeBam3 = bam.makeBam3;
     var BamFlags = bam.BamFlags;
 
     var spans = require('./spans');
@@ -122,12 +122,12 @@ Browser.prototype.createSources = function(config) {
         else
             fs = new BWGFeatureSource(config);
     } else if (config.bamURI || config.bamBlob) {
-        var worker = this.getWorker();
+        var worker = this.getWorker(); //TODO who deals with feature requests.
         if (worker)
             fs = new RemoteBAMFeatureSource(config, worker);
-        else
-            fs = new BAMFeatureSource(config);
-    } else if (config.jbURI) {
+        else { fs = new BAMFeatureSource(config); }
+    } else if ( config.bamRangerURI ) { fs = new BAMRangerFeatureSource(config, this.chr, this.viewStart, this.viewEnd); 
+    } else if (config.jbURI) { //130
         fs = new JBrowseFeatureSource(config);
     } else if (config.uri || config.features_uri) {
         fs = new DASFeatureSource(config);
@@ -180,7 +180,7 @@ DasTier.prototype.fetchStylesheet = function(cb) {
         !this.dasSource.tier_type &&
         !this.dasSource.bwgURI &&
         !this.dasSource.bwgBlob &&
-        !this.dasSource.bamURI &&
+        !this.dasSource.bamURI && !this.dasSource.bamRangerURI &&
         !this.dasSource.bamBlob &&
         !this.dasSource.twoBitURI &&
         !this.dasSource.twoBitBlob &&
@@ -1661,6 +1661,113 @@ Browser.prototype.sourceAdapterIsCapable = function(s, cap) {
     else return s.capabilities()[cap];
 }
 
+function BAMRangerFeatureSource ( bamSource, chr, viewStart, viewEnd ) {
+    FeatureSourceBase.call(this);
+
+    var thisB = this;
+    this.bamSource = bamSource;
+    this.opts = {credentials: bamSource.credentials, preflight: bamSource.preflight, bamGroup: bamSource.bamGroup};
+    this.bamHolder = new Awaited();
+    
+    if (this.opts.preflight) {
+        var pfs = bwg_preflights[this.opts.preflight];
+        if (!pfs) {
+            pfs = new Awaited();
+            bwg_preflights[this.opts.preflight] = pfs;
+
+            var req = new XMLHttpRequest();
+            req.onreadystatechange = function() {
+                if (req.readyState == 4) {
+                    if (req.status == 200) {
+                        pfs.provide('success');
+                    } else {
+                        pfs.provide('failure');
+                    }
+                }
+            };
+            // req.setRequestHeader('cache-control', 'no-cache');    /* Doesn't work, not an allowed request header in CORS */
+            req.open('get', this.opts.preflight + '?' + hex_sha1('salt' + Date.now()), true);    // Instead, ensure we always preflight a unique URI.
+            if (this.opts.credentials) {
+                req.withCredentials = 'true';
+            }
+            req.send('');
+        }
+        pfs.await(function(status) {
+            if (status === 'success') {
+                this.init();
+            }
+        });
+    } else {
+        this.init(); //this.init(chr, viewStart, viewEnd);
+    }
+    
+}
+
+BAMRangerFeatureSource.prototype = Object.create(BAMFeatureSource.prototype);    
+
+BAMRangerFeatureSource.prototype.init = function (chr, viewStart, viewEnd) {
+    if ( chr && viewStart && viewEnd ) {
+        this.fetch(chr, viewStart, viewEnd, null, null, null);
+    }
+}
+
+BAMRangerFeatureSource.prototype.fetch = function(chr, regionStart, regionEnd, scale, types, pool, callback) {
+    var bamF;
+    var thisB = this;
+    console.log("Fetching " + chr + " " + regionStart + "-" + regionEnd);
+    var url = buildRangerURL (thisB.bamSource.bamRangerURI, chr, regionStart, regionEnd);
+    bamF = new URLFetchable(url, {credentials: thisB.opts.credentials});
+
+    makeBam3(bamF, null, null, function (bam, err) {
+        thisB.readiness = null;
+        thisB.notifyReadiness();
+
+        if ( bam ) {
+            thisB.bamHolder.provide( bam );
+        } else {
+            thisB.error = err;
+            thisB.bamHolder.provide(null);
+        }
+    });
+
+    var ligth = types && (types.length == 1) && (types[0] == 'density');
+
+    thisB.busy++;
+    thisB.notifyActivity();
+
+    this.bamHolder.await(function(bam) {
+        if (!bam) {
+            thisB.busy--;
+            thisB.notifyActivity();
+            return callback(thisB.error || "Couldn't fetch BAM");
+        }
+        
+        if ( bam.records ) {
+            var features = [];
+            for ( var ri = 0; ri < bam.records.length; ri++ ) {
+                var r = bam.records[ri], f = bamRecordToFeature(r, thisB.opts.bamGroup);
+                if (f) {
+                    features.push(f);
+                }
+            }
+            callback (null, features, 1000000000);
+        }
+    });
+}
+
+buildRangerURL = function (standardURL, chr, regionStart, regionEnd) {
+  var url = standardURL | '';
+  var ESC_COLON = "%3A";
+  if ( chr ) {
+    url += '&region=' + chr;
+
+    if ( regionStart && regionEnd ) {
+      url += ESC_COLON + regionStart + "-" + regionEnd;
+    }
+  }
+  return url;
+}
+
 if (typeof(module) !== 'undefined') {
     module.exports = {
         FeatureSourceBase: FeatureSourceBase,
@@ -1673,6 +1780,7 @@ if (typeof(module) !== 'undefined') {
         RemoteBWGFeatureSource: RemoteBWGFeatureSource,
         BAMFeatureSource: BAMFeatureSource,
         RemoteBAMFeatureSource: RemoteBAMFeatureSource,
+        BAMRangerFeatureSource: BAMRangerFeatureSource,
         DummyFeatureSource: DummyFeatureSource,
         DummySequenceSource: DummySequenceSource,
 

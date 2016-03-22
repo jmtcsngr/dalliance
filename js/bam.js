@@ -1,6 +1,6 @@
 /* -*- mode: javascript; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 
-// 
+//
 // Dalliance Genome Explorer
 // (c) Thomas Down 2006-2011
 //
@@ -195,7 +195,7 @@ function makeBam2(data, bai, indexChunks, callback, attempted) {
                 if (bam.bai.url && typeof(attempted) === "undefined") {
                     // Already attempted x.bam.bai not there so now trying x.bai
                     bam.bai.url = bam.data.url.replace(new RegExp('.bam$'), '.bai');
-                    
+
                      // True lets us know we are making a second attempt
                     makeBam2(data, bam.bai, indexChunks, callback, true);
                 }
@@ -266,7 +266,7 @@ BamFile.prototype.blocksForRange = function(refId, min, max) {
         }
     }
     // console.log('Lowest LB = ' + lowest);
-    
+
     var prunedOtherChunks = [];
     if (lowest != null) {
         for (var i = 0; i < otherChunks.length; ++i) {
@@ -338,7 +338,7 @@ BamFile.prototype.fetch = function(chr, min, max, callback, opts) {
             callback(null, 'Error in index fetch');
         }
     }
-    
+
     var records = [];
     var index = 0;
     var data;
@@ -387,7 +387,7 @@ BamFile.prototype.readBamRecords = function(ba, offset, sink, min, max, chrId, o
 
         var refID = readInt(ba, offset + 4);
         var pos = readInt(ba, offset + 8);
-        
+
         var bmn = readInt(ba, offset + 12);
         var bin = (bmn & 0xffff0000) >> 16;
         var mq = (bmn & 0xff00) >> 8;
@@ -396,14 +396,14 @@ BamFile.prototype.readBamRecords = function(ba, offset, sink, min, max, chrId, o
         var flag_nc = readInt(ba, offset + 16);
         var flag = (flag_nc & 0xffff0000) >> 16;
         var nc = flag_nc & 0xffff;
-    
+
         var lseq = readInt(ba, offset + 20);
-        
+
         var nextRef  = readInt(ba, offset + 24);
         var nextPos = readInt(ba, offset + 28);
-        
+
         var tlen = readInt(ba, offset + 32);
-    
+
         record.segment = this.indexToChr[refID];
         record.flag = flag;
         record.pos = pos;
@@ -422,7 +422,7 @@ BamFile.prototype.readBamRecords = function(ba, offset, sink, min, max, chrId, o
                 readName += String.fromCharCode(ba[offset + 36 + j]);
             }
             record.readName = readName;
-        
+
             var p = offset + 36 + nl;
 
             var cigar = '';
@@ -432,7 +432,7 @@ BamFile.prototype.readBamRecords = function(ba, offset, sink, min, max, chrId, o
                 p += 4;
             }
             record.cigar = cigar;
-        
+
             var seq = '';
             var seqBytes = (lseq + 1) >> 1;
             for (var j = 0; j < seqBytes; ++j) {
@@ -533,7 +533,7 @@ BamFile.prototype.readBamRecords = function(ba, offset, sink, min, max, chrId, o
 function makeBam3(data, bai, indexChunks, callback, attempted) {
     var bam = new BamFile();
     bam.data = data;
-  
+
     // Fills out bam.chrToIndex and bam.indexToChr based on the first few bytes of the BAM.
     function parseBamHeader(r) {
         if (!r) {
@@ -575,8 +575,7 @@ function makeBam3(data, bai, indexChunks, callback, attempted) {
 
             p = p + 8 + lName;
         }
-        
-        console.log("Number of references " + nRef);
+
         var totalOffset = headLen + 12; //Text part of header + 3 x 4 bytes (magic number, text length and # references)
         //List of reference information
         var FIELD_LENGTH_REFERENCE_NAME = 4;
@@ -587,28 +586,27 @@ function makeBam3(data, bai, indexChunks, callback, attempted) {
             totalOffset += reference_name_length;
             totalOffset += FIELD_LENGTH_REFERENCE_SEQUENCE;
         }
-        
-        console.log("Total offset " + totalOffset);
-        
+
         var records = []
         var min = 0;
         var max = 3000000000;
         var chrId = 21;
         var opts = {};
-        
+
         bam.readBamRecords(uncba, totalOffset, records, min, max, chrId, opts);
 
         bam.records = records;
-        return callback(bam);        
+        return callback(bam);
     }
-    
+
     bam.data.fetch(parseBamHeader);
     //Continue here
 }
 
 if (typeof(module) !== 'undefined') {
     module.exports = {
-        makeBam: makeBam3,
+        makeBam: makeBam,
+        makeBam3: makeBam3,
         BAM_MAGIC: BAM_MAGIC,
         BAI_MAGIC: BAI_MAGIC,
         BamFlags: BamFlags

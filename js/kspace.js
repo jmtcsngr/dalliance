@@ -19,7 +19,7 @@ if (typeof(require) !== 'undefined') {
     var CachingFeatureSource = sa.CachingFeatureSource;
     var BWGFeatureSource = sa.BWGFeatureSource;
     var RemoteBWGFeatureSource = sa.RemoteBWGFeatureSource;
-    var BAMFeatureSource = sa.BAMFeatureSource;
+    var BAMFeatureSource = sa.BAMFeatureSource; var BAMRangerFeatureSource = sa.BAMRangerFeatureSource;
     var RemoteBAMFeatureSource = sa.RemoteBAMFeatureSource;
     var DummySequenceSource = sa.DummySequenceSource;
     var DummyFeatureSource = sa.DummyFeatureSource;
@@ -310,7 +310,7 @@ KnownSpace.prototype.provision = function(tier, chr, coverage, actualScale, want
 		        src = src.source;
 	        }
         }
-        if (BWGFeatureSource.prototype.isPrototypeOf(src) || RemoteBWGFeatureSource.prototype.isPrototypeOf(src) || BAMFeatureSource.prototype.isPrototypeOf(src) || RemoteBAMFeatureSource.prototype.isPrototypeOf(src)) {
+        if (BWGFeatureSource.prototype.isPrototypeOf(src) || RemoteBWGFeatureSource.prototype.isPrototypeOf(src) || BAMFeatureSource.prototype.isPrototypeOf(src) || RemoteBAMFeatureSource.prototype.isPrototypeOf(src) || BAMRangerFeatureSource.prototype.isPrototypeOf(src)) {
             mayDownsample = true;
         }
 
