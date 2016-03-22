@@ -1236,17 +1236,7 @@ BAMFeatureSource.prototype.init = function() {
         //baiF = new URLFetchable(this.bamSource.baiURI || (this.bamSource.bamURI + '.bai'), {credentials: this.opts.credentials});
         baiF = new URLFetchable('http://sf2-farm-srv2.internal.sanger.ac.uk:35500/4950_1_1.bam.bai');
     }
-    makeBam(bamF, baiF, null, function(bam, err) {
-        thisB.readiness = null;
-        thisB.notifyReadiness();
-
-        if (bam) {
-            thisB.bamHolder.provide(bam);
-        } else {
-            thisB.error = err;
-            thisB.bamHolder.provide(null);
-        }
-    });
+    thisB.bamHolder.provide({});
 }
 
 BAMFeatureSource.prototype.fetch = function(chr, min, max, scale, types, pool, callback) {
@@ -1257,13 +1247,29 @@ BAMFeatureSource.prototype.fetch = function(chr, min, max, scale, types, pool, c
     thisB.busy++;
     thisB.notifyActivity();
     
+    var url  = buildRangerURL(thisB.bamSource.bamURI, chr, min, max);
+    var bamF = new URLFetchable(url, {credentials: thisB.opts.credentials});
+    thisB.bamHolder = new Awaited();
+    makeBam(bamF, null, null, function(bam, err) {
+        thisB.readiness = null;
+        thisB.notifyReadiness();
+
+        if (bam) {
+            thisB.bamHolder.provide(bam);
+        } else {
+            thisB.error = err;
+            thisB.bamHolder.provide(null);
+        }
+    });
+    
     this.bamHolder.await(function(bam) {
         if (!bam) {
             thisB.busy--;
             thisB.notifyActivity();
             return callback(thisB.error || "Couldn't fetch BAM");
-        } if ( bam.records ) { var features = []; for ( var ri = 0; ri < bam.records.length; ri++ ) { var r = bam.records[ri], f = bamRecordToFeature(r, thisB.opts.bamGroup); if (f) { features.push(f); } } callback (null, features, 1000000000); }
-
+        } if ( bam.records ) { var features = []; for ( var ri = 0; ri < bam.records.length; ri++ ) { var r = bam.records[ri], f = bamRecordToFeature(r, thisB.opts.bamGroup); if (f) { features.push(f); }; } delete bam.records; callback (null, features, 1000000000); }
+        
+        
         bam.fetch(chr, min, max, function(bamRecords, error) {
             thisB.busy--;
             thisB.notifyActivity();
@@ -1661,6 +1667,19 @@ Browser.prototype.sourceAdapterIsCapable = function(s, cap) {
     else return s.capabilities()[cap];
 }
 
+var buildRangerURL = function (standardURL, chr, regionStart, regionEnd) {
+  var url = standardURL || '';
+  var ESC_COLON = "%3A";
+  if ( chr ) {
+    url += '&region=' + chr;
+
+    if ( regionStart && regionEnd ) {
+      url += ESC_COLON + regionStart + "-" + regionEnd;
+    }
+  }
+  return url;
+}
+
 if (typeof(module) !== 'undefined') {
     module.exports = {
         FeatureSourceBase: FeatureSourceBase,
@@ -1678,7 +1697,8 @@ if (typeof(module) !== 'undefined') {
 
         registerSourceAdapterFactory: dalliance_registerSourceAdapterFactory,
         registerParserFactory: dalliance_registerParserFactory,
-        makeParser: dalliance_makeParser
+        makeParser: dalliance_makeParser,
+        buildRangerURL: buildRangerURL
     }
 
     // Standard set of plugins.
