@@ -42,7 +42,8 @@ if (typeof(require) !== 'undefined') {
     var makeBwg = bbi.makeBwg;
 
     var bam = require('./bam');
-    var makeBam = bam.makeBam;
+    var makeBam       = bam.makeBam;
+    var makeBamRanger = bam.makeBamRanger;
     var BamFlags = bam.BamFlags;
 
     var spans = require('./spans');
@@ -127,6 +128,8 @@ Browser.prototype.createSources = function(config) {
             fs = new RemoteBAMFeatureSource(config, worker);
         else
             fs = new BAMFeatureSource(config);
+    } else if (config.bamRangerURI ) {
+        fs = new BAMRangerFeatureSource(config);
     } else if (config.jbURI) {
         fs = new JBrowseFeatureSource(config);
     } else if (config.uri || config.features_uri) {
@@ -181,6 +184,7 @@ DasTier.prototype.fetchStylesheet = function(cb) {
         !this.dasSource.bwgURI &&
         !this.dasSource.bwgBlob &&
         !this.dasSource.bamURI &&
+        !this.dasSource.bamRangerURI &&
         !this.dasSource.bamBlob &&
         !this.dasSource.twoBitURI &&
         !this.dasSource.twoBitBlob &&
@@ -1233,24 +1237,9 @@ BAMFeatureSource.prototype.init = function() {
         baiF = new BlobFetchable(this.bamSource.baiBlob);
     } else {
         bamF = new URLFetchable(this.bamSource.bamURI, {credentials: this.opts.credentials});
-        //baiF = new URLFetchable(this.bamSource.baiURI || (this.bamSource.bamURI + '.bai'), {credentials: this.opts.credentials});
-        baiF = new URLFetchable('http://sf2-farm-srv2.internal.sanger.ac.uk:35500/4950_1_1.bam.bai');
+        baiF = new URLFetchable(this.bamSource.baiURI || (this.bamSource.bamURI + '.bai'), {credentials: this.opts.credentials});
     }
-    thisB.bamHolder.provide({});
-}
-
-BAMFeatureSource.prototype.fetch = function(chr, min, max, scale, types, pool, callback) {
-    var light = types && (types.length == 1) && (types[0] == 'density');
-
-    var thisB = this;
-    
-    thisB.busy++;
-    thisB.notifyActivity();
-    
-    var url  = buildRangerURL(thisB.bamSource.bamURI, chr, min, max);
-    var bamF = new URLFetchable(url, {credentials: thisB.opts.credentials});
-    thisB.bamHolder = new Awaited();
-    makeBam(bamF, null, null, function(bam, err) {
+    makeBam(bamF, baiF, null, function(bam, err) {
         thisB.readiness = null;
         thisB.notifyReadiness();
 
@@ -1261,15 +1250,23 @@ BAMFeatureSource.prototype.fetch = function(chr, min, max, scale, types, pool, c
             thisB.bamHolder.provide(null);
         }
     });
+}
+
+BAMFeatureSource.prototype.fetch = function(chr, min, max, scale, types, pool, callback) {
+    var light = types && (types.length == 1) && (types[0] == 'density');
+
+    var thisB = this;
+
+    thisB.busy++;
+    thisB.notifyActivity();
     
     this.bamHolder.await(function(bam) {
         if (!bam) {
             thisB.busy--;
             thisB.notifyActivity();
             return callback(thisB.error || "Couldn't fetch BAM");
-        } if ( bam.records ) { var features = []; for ( var ri = 0; ri < bam.records.length; ri++ ) { var r = bam.records[ri], f = bamRecordToFeature(r, thisB.opts.bamGroup); if (f) { features.push(f); }; } delete bam.records; callback (null, features, 1000000000); }
-        
-        
+        }
+
         bam.fetch(chr, min, max, function(bamRecords, error) {
             thisB.busy--;
             thisB.notifyActivity();
@@ -1671,13 +1668,73 @@ var buildRangerURL = function (standardURL, chr, regionStart, regionEnd) {
   var url = standardURL || '';
   var ESC_COLON = "%3A";
   if ( chr ) {
-    url += '&region=' + chr;
+    url += '&irods=1&region=' + chr;
 
     if ( regionStart && regionEnd ) {
       url += ESC_COLON + regionStart + "-" + regionEnd;
     }
   }
   return url;
+}
+
+function BAMRangerFeatureSource ( bamSource ) {
+    FeatureSourceBase.call(this);
+    this.bamSource = bamSource;
+    this.opts = {credentials: bamSource.credentials, preflight: bamSource.preflight, bamGroup: bamSource.bamGroup};
+    this.init();
+}
+
+BAMRangerFeatureSource.prototype = Object.create(BAMFeatureSource.prototype);
+
+BAMRangerFeatureSource.prototype.init = function () {
+    this.bamHolder = new Awaited();
+    this.bamHolder.provide({}); //TODO because I delay the bam loading
+}
+
+BAMRangerFeatureSource.prototype.fetch = function(chr, regionStart, regionEnd, scale, types, pool, callback) {
+    var light = types && (types.length == 1) && (types[0] == 'density');
+
+    var thisB = this;
+
+    thisB.busy++;
+    thisB.notifyActivity();
+
+    var url  = buildRangerURL(thisB.bamSource.bamRangerURI, chr, regionStart, regionEnd);
+    var bamF = new URLFetchable(url, {credentials: thisB.opts.credentials});
+    thisB.bamHolder = new Awaited();
+
+    makeBamRanger(bamF, function(bam, err) {
+        thisB.readiness = null;
+        thisB.notifyReadiness();
+
+        if (bam) {
+            thisB.bamHolder.provide(bam);
+        } else {
+            thisB.error = err;
+            thisB.bamHolder.provide(null);
+        }
+    });
+
+    this.bamHolder.await(function(bam) {
+        if (!bam) {
+            thisB.busy--;
+            thisB.notifyActivity();
+            return callback(thisB.error || "Couldn't fetch BAM");
+        }
+
+        if ( bam.records ) {
+            var features = [];
+            for ( var ri = 0; ri < bam.records.length; ri++ ) {
+                var r = bam.records[ri], f = bamRecordToFeature(r, thisB.opts.bamGroup);
+                if (f) {
+                    features.push(f);
+                }
+            }
+            thisB.busy--;
+            thisB.notifyActivity();
+            callback (null, features, 1000000000);
+        }
+    });
 }
 
 if (typeof(module) !== 'undefined') {
@@ -1691,6 +1748,7 @@ if (typeof(module) !== 'undefined') {
         BWGFeatureSource: BWGFeatureSource,
         RemoteBWGFeatureSource: RemoteBWGFeatureSource,
         BAMFeatureSource: BAMFeatureSource,
+        BAMRangerFeatureSource: BAMRangerFeatureSource,
         RemoteBAMFeatureSource: RemoteBAMFeatureSource,
         DummyFeatureSource: DummyFeatureSource,
         DummySequenceSource: DummySequenceSource,
