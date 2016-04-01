@@ -354,7 +354,7 @@ BamFile.prototype.fetch = function(chr, min, max, callback, opts) {
             var fetchMin = c.minv.block;
             var fetchMax = c.maxv.block + (1<<16); // *sigh*
             // console.log('fetching ' + fetchMin + ':' + fetchMax);
-            thisB.data.fetch(function(r) { //thisB.data.slice(fetchMin, fetchMax - fetchMin).fetch(function(r) {
+            thisB.data.slice(fetchMin, fetchMax - fetchMin).fetch(function(r) {
                 data = unbgzf(r, c.maxv.block - c.minv.block + 1);
                 return tramp();
             });
@@ -520,11 +520,11 @@ BamFile.prototype.readBamRecords = function(ba, offset, sink, min, max, chrId, o
         }
 
         if (!min || record.pos <= max && record.pos + lseq >= min) {
-            if (chrId === undefined || refID == chrId) {
+            if (typeof chrId === 'undefined' || chrId === null || refID == chrId) {
                 sink.push(record);
             }
         }
-        if (record.pos > max) {
+        if (max && record.pos > max) {
             return true;
         }
         offset = blockEnd;
@@ -577,8 +577,8 @@ function makeBamRanger(data, callback) {
 
             p = p + 8 + lName;
         }
-        
-        //console.log("Number of references " + nRef);
+
+
         var totalOffset = headLen + 12; //Text part of header + 3 x 4 bytes (magic number, text length and # references)
         //List of reference information
         var FIELD_LENGTH_REFERENCE_NAME = 4;
@@ -589,21 +589,21 @@ function makeBamRanger(data, callback) {
             totalOffset += reference_name_length;
             totalOffset += FIELD_LENGTH_REFERENCE_SEQUENCE;
         }
-        
-        //console.log("Total offset " + totalOffset);
-        
+
+
+
         var records = []
-        var min = 0;
-        var max = 3000000000;
-        var chrId = 21;
+        var minCoord = null;
+        var maxCoord = null;
+        var chrId = null;
         var opts = {};
-        //TODO min max chrId??????
-        bam.readBamRecords(uncba, totalOffset, records, min, max, chrId, opts);
+
+        bam.readBamRecords(uncba, totalOffset, records, minCoord, maxCoord, chrId, opts);
 
         bam.records = records;
         return callback(bam);        
     }
-    
+
     bam.data.fetch(parseRecords);
 }
 
