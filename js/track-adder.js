@@ -1127,9 +1127,8 @@ Browser.prototype.showTrackAdder = function(ev) {
         source.name      = '';
         source.tier_type = 'bamRanger';
         var nds = makeSourceConfig(source);
-        var fetchable;
-        fetchable = new URLFetchable(nds.bamRangerURI, {credentials: nds.credentials});
-        //TODO 
+        nds.name = 'BAM Ranger';
+        thisB.addTier(nds);
     };
 
     function promptForBAI(nds) {
