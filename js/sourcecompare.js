@@ -21,7 +21,7 @@ function sourceDataURI(conf) {
         return 'file:' + conf.twoBitBlob.name;
     }
 
-    return conf.bwgURI || conf.bamURI || conf.jbURI || conf.twoBitURI || 'https://www.biodalliance.org/magic/no_uri';
+    return conf.bwgURI || conf.bamURI || conf.bamRangerURI || conf.jbURI || conf.twoBitURI || 'https://www.biodalliance.org/magic/no_uri';
 }
 
 function sourceStyleURI(conf) {
