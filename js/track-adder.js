@@ -1127,7 +1127,7 @@ Browser.prototype.showTrackAdder = function(ev) {
         source.name      = '';
         source.tier_type = 'bamRanger';
         var nds = makeSourceConfig(source);
-        nds.name = 'BAM Ranger';
+        nds.name = 'BAM Ranger ' + new Date().getTime();
         thisB.addTier(nds);
     };
 
