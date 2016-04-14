@@ -1665,16 +1665,27 @@ Browser.prototype.sourceAdapterIsCapable = function(s, cap) {
     else return s.capabilities()[cap];
 }
 
-var buildRangerURL = function (standardURL, chr, regionStart, regionEnd) {
-  var url = standardURL || '';
-  var ESC_COLON = "%3A";
-  if ( chr ) {
-    url += '&irods=1&region=' + chr;
-
-    if ( regionStart && regionEnd ) {
-      url += ESC_COLON + regionStart + "-" + regionEnd;
+var encodeChars = function (target, charsToEncode) {
+  target = target.split('');
+  for ( var i = 0; i < target.length; i++ ) {
+    if ( charsToEncode.indexOf(target[i]) !== -1 ) {
+      target[i] = encodeURIComponent(target[i]);
     }
   }
+  return target.join('');
+}
+
+var buildRangerURL = function (standardURL, chr, regionStart, regionEnd) {
+  var url = standardURL || '';
+  url = encodeChars(url, '#');
+  if ( chr ) {
+    url += '&region=' + chr;
+
+    if ( regionStart && regionEnd ) {
+      url += encodeURIComponent(':') + regionStart + '-' + regionEnd;
+    }
+  }
+  
   return url;
 }
 
