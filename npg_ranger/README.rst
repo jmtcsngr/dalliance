@@ -13,8 +13,9 @@ Progress
 --------
 
 * Can display data directly from **NPG Ranger** with a static genome reference
-* Can display side by side data from bam+bai and data from **NPG Ranger**
-* User can add new **NPG Ranger** urls using *NPG Ranger* option in add tracks
+* Can display side by side data from other supported sources and data from 
+  **NPG Ranger**
+* User can add new **NPG Ranger** tracks using *NPG Ranger* option in add tracks
   menu
 * Works with Apache basic auth
 
@@ -25,12 +26,12 @@ Pending
    But we need a way to allow to change reference. Have gui to specify
    reference?
 
-#. Currently disabling security in browser to fetch data from different
-   sources (bam+bai and static files vs **NPG Ranger** data).
+#. Using a single point of request (Apache) for static files and **NPG Ranger**
+   (with reverse proxy).
 
-   * Using a server with CORS configuration should fix the issue.
-   * Using a single point of request (Apache) for static files and
-     **NPG Ranger** should fix without any coding required.
+   * Using a **NPG Ranger** server with CORS configuration should fix the issue.
+     Does not seem to work properly if using Apache as reverse proxy. But it
+     works if using direct requests.
 
 #. Further work is needed to change references
 
@@ -42,3 +43,4 @@ Pending
 
 #. Glitch when requesting more than one region before the view is updated
 
+#. Regresion for cache and not requesting regions already in viewer (zooming in)
