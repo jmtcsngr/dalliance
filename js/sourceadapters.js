@@ -42,7 +42,8 @@ if (typeof(require) !== 'undefined') {
     var makeBwg = bbi.makeBwg;
 
     var bam = require('./bam');
-    var makeBam = bam.makeBam;
+    var makeBam       = bam.makeBam;
+    var makeBamRanger = bam.makeBamRanger;
     var BamFlags = bam.BamFlags;
 
     var spans = require('./spans');
@@ -127,6 +128,8 @@ Browser.prototype.createSources = function(config) {
             fs = new RemoteBAMFeatureSource(config, worker);
         else
             fs = new BAMFeatureSource(config);
+    } else if (config.bamRangerURI ) {
+        fs = new BAMRangerFeatureSource(config);
     } else if (config.jbURI) {
         fs = new JBrowseFeatureSource(config);
     } else if (config.uri || config.features_uri) {
@@ -181,6 +184,7 @@ DasTier.prototype.fetchStylesheet = function(cb) {
         !this.dasSource.bwgURI &&
         !this.dasSource.bwgBlob &&
         !this.dasSource.bamURI &&
+        !this.dasSource.bamRangerURI &&
         !this.dasSource.bamBlob &&
         !this.dasSource.twoBitURI &&
         !this.dasSource.twoBitBlob &&
@@ -1234,6 +1238,7 @@ BAMFeatureSource.prototype.init = function() {
     } else {
         bamF = new URLFetchable(this.bamSource.bamURI, {credentials: this.opts.credentials});
         baiF = new URLFetchable(this.bamSource.baiURI || (this.bamSource.bamURI + '.bai'), {credentials: this.opts.credentials});
+
     }
     makeBam(bamF, baiF, null, function(bam, err) {
         thisB.readiness = null;
@@ -1252,7 +1257,7 @@ BAMFeatureSource.prototype.fetch = function(chr, min, max, scale, types, pool, c
     var light = types && (types.length == 1) && (types[0] == 'density');
 
     var thisB = this;
-    
+
     thisB.busy++;
     thisB.notifyActivity();
     
@@ -1660,6 +1665,90 @@ Browser.prototype.sourceAdapterIsCapable = function(s, cap) {
     else return s.capabilities()[cap];
 }
 
+var encodeChars = function (target, charsToEncode) {
+  target = target.split('');
+  for ( var i = 0; i < target.length; i++ ) {
+    if ( charsToEncode.indexOf(target[i]) !== -1 ) {
+      target[i] = encodeURIComponent(target[i]);
+    }
+  }
+  return target.join('');
+}
+
+var buildRangerURL = function (standardURL, chr, regionStart, regionEnd) {
+  var url = standardURL || '';
+  url = encodeChars(url, '#');
+  if ( chr ) {
+    url += '&region=' + chr;
+
+    if ( regionStart && regionEnd ) {
+      url += encodeURIComponent(':') + regionStart + '-' + regionEnd;
+    }
+  }
+  
+  return url;
+}
+
+function BAMRangerFeatureSource ( bamSource ) {
+    FeatureSourceBase.call(this);
+    this.bamSource = bamSource;
+    this.opts = {credentials: bamSource.credentials, preflight: bamSource.preflight, bamGroup: bamSource.bamGroup};
+    this.init();
+}
+
+BAMRangerFeatureSource.prototype = Object.create(BAMFeatureSource.prototype);
+
+BAMRangerFeatureSource.prototype.init = function () {
+    this.bamHolder = new Awaited();
+    this.bamHolder.provide({}); //TODO because I delay the bam loading
+}
+
+BAMRangerFeatureSource.prototype.fetch = function(chr, regionStart, regionEnd, scale, types, pool, callback) {
+    var light = types && (types.length == 1) && (types[0] == 'density');
+
+    var thisB = this;
+
+    thisB.busy++;
+    thisB.notifyActivity();
+
+    var url  = buildRangerURL(thisB.bamSource.bamRangerURI, chr, regionStart, regionEnd);
+    var bamF = new URLFetchable(url, {credentials: thisB.opts.credentials});
+    thisB.bamHolder = new Awaited();
+
+    makeBamRanger(bamF, function(bam, err) {
+        thisB.readiness = null;
+        thisB.notifyReadiness();
+
+        if (bam) {
+            thisB.bamHolder.provide(bam);
+        } else {
+            thisB.error = err;
+            thisB.bamHolder.provide(null);
+        }
+    });
+
+    this.bamHolder.await(function(bam) {
+        if (!bam) {
+            thisB.busy--;
+            thisB.notifyActivity();
+            return callback(thisB.error || "Couldn't fetch BAM");
+        }
+
+        if ( bam.records ) {
+            var features = [];
+            for ( var ri = 0; ri < bam.records.length; ri++ ) {
+                var r = bam.records[ri], f = bamRecordToFeature(r, thisB.opts.bamGroup);
+                if (f) {
+                    features.push(f);
+                }
+            }
+            thisB.busy--;
+            thisB.notifyActivity();
+            callback (null, features, 1000000000);
+        }
+    });
+}
+
 if (typeof(module) !== 'undefined') {
     module.exports = {
         FeatureSourceBase: FeatureSourceBase,
@@ -1671,13 +1760,15 @@ if (typeof(module) !== 'undefined') {
         BWGFeatureSource: BWGFeatureSource,
         RemoteBWGFeatureSource: RemoteBWGFeatureSource,
         BAMFeatureSource: BAMFeatureSource,
+        BAMRangerFeatureSource: BAMRangerFeatureSource,
         RemoteBAMFeatureSource: RemoteBAMFeatureSource,
         DummyFeatureSource: DummyFeatureSource,
         DummySequenceSource: DummySequenceSource,
 
         registerSourceAdapterFactory: dalliance_registerSourceAdapterFactory,
         registerParserFactory: dalliance_registerParserFactory,
-        makeParser: dalliance_makeParser
+        makeParser: dalliance_makeParser,
+        buildRangerURL: buildRangerURL
     }
 
     // Standard set of plugins.

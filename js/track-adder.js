@@ -265,6 +265,8 @@ Browser.prototype.showTrackAdder = function(ev) {
     }   
     var custButton = this.makeButton('DAS', 'Add arbitrary DAS data');
     addModeButtons.push(custButton);
+    var custRangerButton = this.makeButton('NPG Ranger', 'Binary data from NPG Ranger');
+    addModeButtons.push(custRangerButton);
     var binButton = this.makeButton('Binary', 'Add data in bigwig or bigbed format');
     addModeButtons.push(binButton);
 
@@ -692,7 +694,34 @@ Browser.prototype.showTrackAdder = function(ev) {
         custURL.focus();
     }
 
+    custRangerButton.addEventListener('click', function(ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        switchToCustomRangerMode();
+    }, false);
 
+    function switchToCustomRangerMode () {
+        activateButton(addModeButtons, custRangerButton);
+        refreshButton.style.display = 'none';
+        addButton.style.display = 'inline';
+        canButton.style.display = 'none';
+
+        customMode = 'ranger';
+
+        removeChildren(stabHolder);
+
+        var customForm = makeElement('div', null, {},  {paddingLeft: '10px', paddingRight: '10px'});
+        customForm.appendChild(makeElement('h3', 'Add custom BAM data from server with ranger support'));
+        customForm.appendChild(makeElement('p', 'This interface is intended for adding custom ranger data source.'));
+                
+        customForm.appendChild(document.createTextNode('URL: '));
+        customForm.appendChild(makeElement('br'));
+        custURL = makeElement('input', '', {size: 80, value: 'http://server:port/file?directory=/seq/folder&name=file.bam'}, {width: '100%'});
+        customForm.appendChild(custURL);
+        stabHolder.appendChild(customForm);
+
+        custURL.focus();
+    }
 
     var addButton = makeElement('button', 'Add', {className: 'btn btn-primary'});
     addButton.addEventListener('click', function(ev) {
@@ -709,6 +738,13 @@ Browser.prototype.showTrackAdder = function(ev) {
                 }
                 var nds = new DASSource({name: 'temporary', uri: curi});
                 tryAddDAS(nds);
+            } else if (customMode === 'ranger') {
+                var curi = custURL.value.trim();
+                if (!/^.+:\/\//.exec(curi)) {
+                    curi = 'http://' + curi;
+                }
+                var source = {bamRangerURI: curi};
+                tryAddRanger(source);
             } else if (customMode === 'bin') {
                 var fileList = custFile.files;
 
@@ -1021,7 +1057,10 @@ Browser.prototype.showTrackAdder = function(ev) {
             } else {
                 nds.bamURI = s.uri;
                 nds.baiURI = s.indexUri;
-            }
+            } 
+            return nds;
+        } else if ( s.tier_type === 'bamRanger' ) { 
+            nds.bamRangerURI = s.bamRangerURI;
             return nds;
         } else if (s.tier_type == 'tabix') {
             nds.tier_type = 'tabix';
@@ -1083,6 +1122,14 @@ Browser.prototype.showTrackAdder = function(ev) {
             }
         });
     }
+    
+    var tryAddRanger = function(source) {
+        source.name      = '';
+        source.tier_type = 'bamRanger';
+        var nds = makeSourceConfig(source);
+        nds.name = 'BAM Ranger ' + new Date().getTime();
+        thisB.addTier(nds);
+    };
 
     function promptForBAI(nds) {
         refreshButton.style.display = 'none';

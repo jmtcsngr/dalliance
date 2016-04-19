@@ -322,19 +322,23 @@ BamFile.prototype.fetch = function(chr, min, max, callback, opts) {
     if (chrId === undefined) {
         chunks = [];
     } else {
-        // Fetch this portion of the BAI if it hasn't been loaded yet.
-        if (this.indices[chrId] === null && this.indexChunks.chunks[chrId]) {
-            var start_stop = this.indexChunks.chunks[chrId];
-            return this.bai.slice(start_stop[0], start_stop[1]).fetch(function(data) {
-                var buffer = new Uint8Array(data);
-                this.indices[chrId] = buffer;
-                return this.fetch(chr, min, max, callback, opts);
-            }.bind(this));
-        }
+        if ( this.indices ) {
+            // Fetch this portion of the BAI if it hasn't been loaded yet.
+            if (this.indices[chrId] === null && this.indexChunks.chunks[chrId]) {
+                var start_stop = this.indexChunks.chunks[chrId];
+                return this.bai.slice(start_stop[0], start_stop[1]).fetch(function(data) {
+                    var buffer = new Uint8Array(data);
+                    this.indices[chrId] = buffer;
+                    return this.fetch(chr, min, max, callback, opts);
+                }.bind(this));
+            }
 
-        chunks = this.blocksForRange(chrId, min, max);
-        if (!chunks) {
-            callback(null, 'Error in index fetch');
+            chunks = this.blocksForRange(chrId, min, max);
+            if (!chunks) {
+                callback(null, 'Error in index fetch');
+            }
+        } else {
+            chunks = [];
         }
     }
     
@@ -378,7 +382,7 @@ BamFile.prototype.readBamRecords = function(ba, offset, sink, min, max, chrId, o
     while (true) {
         var blockSize = readInt(ba, offset);
         var blockEnd = offset + blockSize + 4;
-        if (blockEnd >= ba.length) {
+        if (blockEnd > ba.length) {
             return false;
         }
 
@@ -516,11 +520,11 @@ BamFile.prototype.readBamRecords = function(ba, offset, sink, min, max, chrId, o
         }
 
         if (!min || record.pos <= max && record.pos + lseq >= min) {
-            if (chrId === undefined || refID == chrId) {
+            if (typeof chrId === 'undefined' || chrId === null || refID == chrId) {
                 sink.push(record);
             }
         }
-        if (record.pos > max) {
+        if (max && record.pos > max) {
             return true;
         }
         offset = blockEnd;
@@ -529,9 +533,84 @@ BamFile.prototype.readBamRecords = function(ba, offset, sink, min, max, chrId, o
     // Exits via top of loop.
 };
 
+function makeBamRanger(data, callback) {
+    var bam = new BamFile();
+    bam.data = data;
+  
+    function parseRecords(r) {
+        if (!r) {
+            return callback(null, "Couldn't access BAM");
+        }
+
+        var unc = unbgzf(r, r.byteLength);
+        var uncba = new Uint8Array(unc);
+
+        var magic = readInt(uncba, 0);
+        if (magic != BAM_MAGIC) {
+            return callback(null, "Not a BAM file, magic=0x" + magic.toString(16));
+        }
+        var headLen = readInt(uncba, 4);
+        var header = '';
+        for (var i = 0; i < headLen; ++i) {
+            header += String.fromCharCode(uncba[i + 8]);
+        }
+
+        var nRef = readInt(uncba, headLen + 8);
+        var p = headLen + 12;
+
+        bam.chrToIndex = {};
+        bam.indexToChr = [];
+        for (var i = 0; i < nRef; ++i) {
+            var lName = readInt(uncba, p);
+            var name = '';
+            for (var j = 0; j < lName-1; ++j) {
+                name += String.fromCharCode(uncba[p + 4 + j]);
+            }
+            var lRef = readInt(uncba, p + lName + 4);
+            bam.chrToIndex[name] = i;
+            if (name.indexOf('chr') == 0) {
+                bam.chrToIndex[name.substring(3)] = i;
+            } else {
+                bam.chrToIndex['chr' + name] = i;
+            }
+            bam.indexToChr.push(name);
+
+            p = p + 8 + lName;
+        }
+
+
+        var totalOffset = headLen + 12; //Text part of header + 3 x 4 bytes (magic number, text length and # references)
+        //List of reference information
+        var FIELD_LENGTH_REFERENCE_NAME = 4;
+        var FIELD_LENGTH_REFERENCE_SEQUENCE = 4;
+        for ( i = 0; i < nRef; i++ ) {
+            var reference_name_length = readInt(uncba, totalOffset);
+            totalOffset += FIELD_LENGTH_REFERENCE_NAME;
+            totalOffset += reference_name_length;
+            totalOffset += FIELD_LENGTH_REFERENCE_SEQUENCE;
+        }
+
+
+
+        var records = []
+        var minCoord = null;
+        var maxCoord = null;
+        var chrId = null;
+        var opts = {};
+
+        bam.readBamRecords(uncba, totalOffset, records, minCoord, maxCoord, chrId, opts);
+
+        bam.records = records;
+        return callback(bam);        
+    }
+
+    bam.data.fetch(parseRecords);
+}
+
 if (typeof(module) !== 'undefined') {
     module.exports = {
         makeBam: makeBam,
+        makeBamRanger: makeBamRanger,
         BAM_MAGIC: BAM_MAGIC,
         BAI_MAGIC: BAI_MAGIC,
         BamFlags: BamFlags
