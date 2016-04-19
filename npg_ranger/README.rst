@@ -18,6 +18,8 @@ Progress
 * User can add new **NPG Ranger** tracks using *NPG Ranger* option in add tracks
   menu
 * Works with Apache basic auth
+* Our reference are supported if they are in 2bit format (output from
+  faToTwoBit)
 
 Pending
 -------
@@ -35,10 +37,6 @@ Pending
 
 #. Further work is needed to change references
 
-   * Format our references so they are compatible with browser (bigbed)
-   * Which references?
-   * Where to put them?
-   * Allow user to select reference?
    * Automatic reference from study?
 
 #. Glitch when requesting more than one region before the view is updated
