@@ -310,7 +310,7 @@ Awaited.prototype.provide = function(x) {
     }
 
     this.res = x;
-    for (var i = 0; i < this.queue.length; ++i) {
+    for (var i = 0; this.queue && i < this.queue.length; ++i) {
         this.queue[i](x);
     }
     this.queue = null;   // avoid leaking closures.

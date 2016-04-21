@@ -1767,20 +1767,21 @@ BAMRangerFeatureSource.prototype.fetch = function(chr, regionStart, regionEnd, s
         var url  = buildRangerURL(thisB.bamSource.bamRangerURI, chr, regionStart, regionEnd);
         var bamF = new URLFetchable(url, {credentials: thisB.opts.credentials});
         thisB.bamHolder = new Awaited();
+        var thisBamHolder = thisB.bamHolder;
 
         makeBamRanger(bamF, function(bam, err) {
             thisB.readiness = null;
             thisB.notifyReadiness();
 
             if (bam) {
-                thisB.bamHolder.provide(bam);
+                thisBamHolder.provide(bam);
             } else {
                 thisB.error = err;
-                thisB.bamHolder.provide(null);
+                thisBamHolder.provide(null);
             }
         });
 
-        this.bamHolder.await( function(bam) {
+        thisBamHolder.await( function(bam) {
             if (!bam) {
                 thisB.busy--;
                 thisB.notifyActivity();
