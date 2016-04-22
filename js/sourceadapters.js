@@ -1750,6 +1750,20 @@ BAMRangerFeatureSource.prototype._putInCache = function (chr, regionStart, regio
     });
 };
 
+BAMRangerFeatureSource.prototype._cacheRegion = function (chr, regionStart, regionEnd, features) {
+    if ( typeof chr === 'undefined' || chr === null ||
+         typeof regionStart === 'undefined' || regionStart === null ||
+         typeof regionEnd === 'undefined' || regionEnd === null ||
+         typeof features === 'undefined' || features === null ||
+         Object.prototype.toString.call( features ) !== '[object Array]' ) {
+
+        throw new Error('Invalid parameter when trying to cache region');
+    }
+    this._cleanCache(chr, regionStart, regionEnd);
+    this._trimCache();
+    this._putInCache(chr, regionStart, regionEnd, features);
+};
+
 BAMRangerFeatureSource.prototype.fetch = function(chr, regionStart, regionEnd, scale, types, pool, callback) {
     var light = types && (types.length == 1) && (types[0] == 'density');
 
@@ -1797,9 +1811,7 @@ BAMRangerFeatureSource.prototype.fetch = function(chr, regionStart, regionEnd, s
                     }
                 }
                 
-                thisB._cleanCache(chr, regionStart, regionEnd);
-                thisB._trimCache();
-                thisB._putInCache(chr, regionStart, regionEnd, features);
+                thisB._cacheRegion(chr, regionStart, regionEnd, features);
                 thisB.busy--;
                 thisB.notifyActivity();
                 callback(null, features, 1000000000);
