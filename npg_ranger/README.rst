@@ -42,3 +42,7 @@ Pending
 
 #. Working on possible solution for zoom out, processing multiple events and
    for moving horizontally.
+
+#. Cache is currently cleaning itself considering only number of regions in
+   cache. Because different regions may have different densities of features,
+   we may want to limit cache also by max number of features.
