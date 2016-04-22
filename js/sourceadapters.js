@@ -1815,6 +1815,8 @@ BAMRangerFeatureSource.prototype.fetch = function(chr, regionStart, regionEnd, s
                 thisB.busy--;
                 thisB.notifyActivity();
                 callback(null, features, 1000000000);
+            } else {
+                return callback(thisB.error || "BAM has no records defined");
             }
         });
     }
