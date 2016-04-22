@@ -20,6 +20,7 @@ Progress
 * Works with Apache basic auth
 * Our reference are supported if they are in 2bit format (output from
   faToTwoBit)
+* Basic cache for zoom in
 
 Pending
 -------
@@ -39,6 +40,5 @@ Pending
 
    * Automatic reference from study?
 
-#. Glitch when requesting more than one region before the view is updated
-
-#. Regresion for cache and not requesting regions already in viewer (zooming in)
+#. Working on possible solution for zoom out, processing multiple events and
+   for moving horizontally.
