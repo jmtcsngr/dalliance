@@ -1673,7 +1673,7 @@ var encodeChars = function (target, charsToEncode) {
     }
   }
   return target.join('');
-}
+};
 
 var buildRangerURL = function (standardURL, chr, regionStart, regionEnd) {
   var url = standardURL || '';
@@ -1687,12 +1687,14 @@ var buildRangerURL = function (standardURL, chr, regionStart, regionEnd) {
   }
   
   return url;
-}
+};
 
 function BAMRangerFeatureSource ( bamSource ) {
     FeatureSourceBase.call(this);
     this.bamSource = bamSource;
     this.opts = {credentials: bamSource.credentials, preflight: bamSource.preflight, bamGroup: bamSource.bamGroup};
+    this.cache = [];
+    this.cacheLimit = 50;
     this.init();
 }
 
@@ -1701,7 +1703,66 @@ BAMRangerFeatureSource.prototype = Object.create(BAMFeatureSource.prototype);
 BAMRangerFeatureSource.prototype.init = function () {
     this.bamHolder = new Awaited();
     this.bamHolder.provide({}); //TODO because I delay the bam loading
-}
+};
+
+BAMRangerFeatureSource.prototype._featuresFromCache = function (chr, regionStart, regionEnd) {
+    var foundFeatures;
+    for( var i = 0; i < this.cache.length; i++ ) {
+        var cacheElement = this.cache[i];
+        if ( cacheElement.chr === chr &&
+             cacheElement.start <= regionStart &&
+             cacheElement.end >= regionEnd ) {
+            foundFeatures = cacheElement.features;
+            break;
+        }
+    }
+    return foundFeatures;
+};
+
+BAMRangerFeatureSource.prototype._cleanCache = function (chr, regionStart, regionEnd) {
+    var totalToCheck = this.cache.length;
+    for ( var i = 0; i < totalToCheck; i++ ) {
+        var elementToCheck = this.cache.shift();
+        if ( elementToCheck.chr === chr &&
+             elementToCheck.start > regionStart &&
+             elementToCheck.end < regionEnd ) {
+            continue;
+        } else {
+            this.cache.push(elementToCheck);
+        }
+    }
+};
+
+BAMRangerFeatureSource.prototype._trimCache = function (trimTo) {
+    var maxInCache = trimTo || this.cacheLimit;
+    maxInCache--;
+    while ( this.cache.length > maxInCache ) {
+        this.cache.shift();
+    }
+};
+
+BAMRangerFeatureSource.prototype._putInCache = function (chr, regionStart, regionEnd, features) {
+    this.cache.push({
+        chr:      chr,
+        start:    regionStart,
+        end:      regionEnd,
+        features: features
+    });
+};
+
+BAMRangerFeatureSource.prototype._cacheRegion = function (chr, regionStart, regionEnd, features) {
+    if ( typeof chr === 'undefined' || chr === null ||
+         typeof regionStart === 'undefined' || regionStart === null ||
+         typeof regionEnd === 'undefined' || regionEnd === null ||
+         typeof features === 'undefined' || features === null ||
+         Object.prototype.toString.call( features ) !== '[object Array]' ) {
+
+        throw new Error('Invalid parameter when trying to cache region');
+    }
+    this._cleanCache(chr, regionStart, regionEnd);
+    this._trimCache();
+    this._putInCache(chr, regionStart, regionEnd, features);
+};
 
 BAMRangerFeatureSource.prototype.fetch = function(chr, regionStart, regionEnd, scale, types, pool, callback) {
     var light = types && (types.length == 1) && (types[0] == 'density');
@@ -1711,43 +1772,53 @@ BAMRangerFeatureSource.prototype.fetch = function(chr, regionStart, regionEnd, s
     thisB.busy++;
     thisB.notifyActivity();
 
-    var url  = buildRangerURL(thisB.bamSource.bamRangerURI, chr, regionStart, regionEnd);
-    var bamF = new URLFetchable(url, {credentials: thisB.opts.credentials});
-    thisB.bamHolder = new Awaited();
+    var featuresFromCache = thisB._featuresFromCache(chr, regionStart, regionEnd);
+    if ( featuresFromCache ) {
+        thisB.busy--;
+        thisB.notifyActivity();
+        callback(null, featuresFromCache, 1000000000);
+    } else {
+        var url  = buildRangerURL(thisB.bamSource.bamRangerURI, chr, regionStart, regionEnd);
+        var bamF = new URLFetchable(url, {credentials: thisB.opts.credentials});
+        thisB.bamHolder = new Awaited();
+        var thisBamHolder = thisB.bamHolder;
 
-    makeBamRanger(bamF, function(bam, err) {
-        thisB.readiness = null;
-        thisB.notifyReadiness();
+        makeBamRanger(bamF, function(bam, err) {
+            thisB.readiness = null;
+            thisB.notifyReadiness();
 
-        if (bam) {
-            thisB.bamHolder.provide(bam);
-        } else {
-            thisB.error = err;
-            thisB.bamHolder.provide(null);
-        }
-    });
-
-    this.bamHolder.await(function(bam) {
-        if (!bam) {
-            thisB.busy--;
-            thisB.notifyActivity();
-            return callback(thisB.error || "Couldn't fetch BAM");
-        }
-
-        if ( bam.records ) {
-            var features = [];
-            for ( var ri = 0; ri < bam.records.length; ri++ ) {
-                var r = bam.records[ri], f = bamRecordToFeature(r, thisB.opts.bamGroup);
-                if (f) {
-                    features.push(f);
-                }
+            if (bam) {
+                thisBamHolder.provide(bam);
+            } else {
+                thisB.error = err;
+                thisBamHolder.provide(null);
             }
-            thisB.busy--;
-            thisB.notifyActivity();
-            callback (null, features, 1000000000);
-        }
-    });
-}
+        });
+
+        thisBamHolder.await( function(bam) {
+            if (!bam) {
+                thisB.busy--;
+                thisB.notifyActivity();
+                return callback(thisB.error || "Couldn't fetch BAM");
+            }
+
+            if ( bam.records ) {
+                var features = [];
+                for ( var ri = 0; ri < bam.records.length; ri++ ) {
+                    var r = bam.records[ri], f = bamRecordToFeature(r, thisB.opts.bamGroup);
+                    if (f) {
+                        features.push(f);
+                    }
+                }
+                
+                thisB._cacheRegion(chr, regionStart, regionEnd, features);
+                thisB.busy--;
+                thisB.notifyActivity();
+                callback(null, features, 1000000000);
+            }
+        });
+    }
+};
 
 if (typeof(module) !== 'undefined') {
     module.exports = {
@@ -1769,7 +1840,7 @@ if (typeof(module) !== 'undefined') {
         registerParserFactory: dalliance_registerParserFactory,
         makeParser: dalliance_makeParser,
         buildRangerURL: buildRangerURL
-    }
+    };
 
     // Standard set of plugins.
     require('./ensembljson');

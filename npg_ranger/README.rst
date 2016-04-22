@@ -18,6 +18,9 @@ Progress
 * User can add new **NPG Ranger** tracks using *NPG Ranger* option in add tracks
   menu
 * Works with Apache basic auth
+* Our reference are supported if they are in 2bit format (output from
+  faToTwoBit)
+* Basic cache for zoom in
 
 Pending
 -------
@@ -35,12 +38,11 @@ Pending
 
 #. Further work is needed to change references
 
-   * Format our references so they are compatible with browser (bigbed)
-   * Which references?
-   * Where to put them?
-   * Allow user to select reference?
    * Automatic reference from study?
 
-#. Glitch when requesting more than one region before the view is updated
+#. Working on possible solution for zoom out, processing multiple events and
+   for moving horizontally.
 
-#. Regresion for cache and not requesting regions already in viewer (zooming in)
+#. Cache is currently cleaning itself considering only number of regions in
+   cache. Because different regions may have different densities of features,
+   we may want to limit cache also by max number of features.
