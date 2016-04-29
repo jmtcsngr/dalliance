@@ -20,7 +20,8 @@ Progress
 * Works with Apache basic auth
 * Our reference are supported if they are in 2bit format (output from
   faToTwoBit)
-* Basic cache for zoom in
+* Basic cache for zoom in, delay/accumulate multiple fast zooming (out) requests
+  to mitigate risk of flooding server.
 
 Pending
 -------
@@ -39,9 +40,6 @@ Pending
 #. Further work is needed to change references
 
    * Automatic reference from study?
-
-#. Working on possible solution for zoom out, processing multiple events and
-   for moving horizontally.
 
 #. Cache is currently cleaning itself considering only number of regions in
    cache. Because different regions may have different densities of features,
