@@ -138,6 +138,7 @@ function Browser(opts) {
 
     // Timer for delaying zooming in/out
     this.timeout = null;
+    this.zoomTimeDelay = opts.zoomTimeDelay || 650; //Zoom time delay
 
     // HTTP warning support
 
@@ -1495,10 +1496,12 @@ Browser.prototype.zoomStep = function(delta) {
         this.zoomSliderValue = nz; // FIXME maybe ought to set inside zoom!
         this.notifyLocation();
         var self = this;
-        clearTimeout(self.timeout);
-        this.timeout = setTimeout( function () {
+        if (self.timeout) {
+            clearTimeout(self.timeout);
+        }
+        self.timeout = setTimeout( function () {
             self.zoom(Math.exp((1.0 * nz) / self.zoomExpt));
-        }, 650);
+        }, this.zoomTimeDelay);
     }
 }
 
