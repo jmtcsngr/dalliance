@@ -264,7 +264,7 @@ Browser.prototype.initUI = function(holder, genomePanel) {
     }, false);
     b.makeTooltip(zoomOutBtn, 'Zoom out (-)');
 
-    zoomSlider.addEventListener('change', function(ev) {
+    zoomSlider.addEventListener('changeEnd', function(ev) {
         var wantSnap = zoomSlider.active == 2;
         if (wantSnap != b.isSnapZooming) {
             b.savedZoom = b.zoomSliderValue  - b.zoomMin;
@@ -272,8 +272,8 @@ Browser.prototype.initUI = function(holder, genomePanel) {
         }
         var activeZSV = zoomSlider.active == 1 ? zoomSlider.value : zoomSlider.value2;
 
-    	b.zoomSliderValue = (1.0 * activeZSV);
-    	b.zoom(Math.exp((1.0 * activeZSV) / b.zoomExpt));
+        b.zoomSliderValue = (1.0 * activeZSV);
+        b.zoom(Math.exp((1.0 * activeZSV) / b.zoomExpt));
     }, false);
 
     favBtn.addEventListener('click', function(ev) {

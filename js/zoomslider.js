@@ -43,6 +43,8 @@ function makeZoomSlider() {
 
     var onChange = document.createEvent('HTMLEvents');
     onChange.initEvent('change', true, false);
+    var onChangeEnd = document.createEvent('HTMLEvents');
+    onChangeEnd.initEvent('changeEnd', true, false);
 
     function setPos(np) {
         np = Math.min(np, maxPos);
@@ -126,6 +128,7 @@ function makeZoomSlider() {
     var thumbDragEndHandler = function(ev) {
         window.removeEventListener('mousemove', thumbDragHandler, false);
         window.removeEventListener('mouseup', thumbDragEndHandler, false);
+        slider.dispatchEvent(onChangeEnd);
     }
 
     return slider;

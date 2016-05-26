@@ -136,6 +136,10 @@ function Browser(opts) {
     this.assemblyNamePrimary = true;
     this.assemblyNameUcsc = true;
 
+    // Timer for delaying zooming in/out
+    this.timeout = null;
+    this.zoomTimeDelay = opts.zoomTimeDelay || 650; //Zoom time delay
+
     // HTTP warning support
 
     this.httpCanaryURL = 'http://www.biodalliance.org/http-canary.txt';
@@ -1490,7 +1494,14 @@ Browser.prototype.zoomStep = function(delta) {
 
     if (nz != oz) {
         this.zoomSliderValue = nz; // FIXME maybe ought to set inside zoom!
-        this.zoom(Math.exp((1.0 * nz) / this.zoomExpt));
+        this.notifyLocation();
+        var self = this;
+        if (self.timeout) {
+            clearTimeout(self.timeout);
+        }
+        self.timeout = setTimeout( function () {
+            self.zoom(Math.exp((1.0 * nz) / self.zoomExpt));
+        }, this.zoomTimeDelay);
     }
 }
 
@@ -1514,7 +1525,6 @@ Browser.prototype.zoom = function(factor) {
     
     var scaleRat = (this.scale / this.scaleAtLastRedraw);
 
-    this.notifyLocation();
     this.refresh();
 }
 
