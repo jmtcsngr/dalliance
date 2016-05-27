@@ -534,12 +534,18 @@ BamFile.prototype.readBamRecords = function(ba, offset, sink, min, max, chrId, o
 };
 
 function makeBamRanger(data, callback) {
+
     var bam = new BamFile();
     bam.data = data;
-  
-    function parseRecords(r) {
+
+    function parseRecords(r, errorMessage) {
         if (!r) {
-            return callback(null, "Couldn't access BAM");
+            errorMessage = errorMessage || "Couldn't access BAM";
+            return callback(null, errorMessage);
+        }
+
+        if ( r.byteLength === 0 ) {
+            callback(null, 'The request retrieved no data');
         }
 
         var unc = unbgzf(r, r.byteLength);

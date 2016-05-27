@@ -1,6 +1,6 @@
 /* -*- mode: javascript; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 
-// 
+//
 // Dalliance Genome Explorer
 // (c) Thomas Down 2006-2011
 //
@@ -152,7 +152,7 @@ URLFetchable.prototype.salted = function() {
 
 URLFetchable.prototype.fetch = function(callback, opts) {
     var thisB = this;
- 
+
     opts = opts || {};
     var attempt = opts.attempt || 1;
     var truncatedLength = opts.truncatedLength;
@@ -190,9 +190,22 @@ URLFetchable.prototype.fetch = function(callback, opts) {
         }
         req.responseType = 'arraybuffer';
         req.onreadystatechange = function() {
+
             if (req.readyState == 4) {
+
                 if (timeout)
                     clearTimeout(timeout);
+                if ( req.status === 401 ||
+                     req.status === 403 ||
+                     req.status === 404 ||
+                     req.status === 406 ||
+                     req.status === 422 ||
+                     req.status === 500 ) {
+
+                    var errorMessage = req.statusText ? req.statusText
+                                                      : 'Server Error ' + req.status;
+                    return callback(null, errorMessage);
+                }
                 if (req.status == 200 || req.status == 206) {
                     if (req.response) {
                         var bl = req.response.byteLength;
