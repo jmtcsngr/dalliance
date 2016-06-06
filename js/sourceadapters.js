@@ -1675,7 +1675,7 @@ var encodeChars = function (target, charsToEncode) {
   return target.join('');
 };
 
-var buildRangerURL = function (standardURL, chr, regionStart, regionEnd) {
+var buildRangerURL = function ( standardURL, chr, regionStart, regionEnd ) {
   var url = standardURL || '';
   url = encodeChars(url, '#');
   if ( chr ) {
@@ -1689,12 +1689,26 @@ var buildRangerURL = function (standardURL, chr, regionStart, regionEnd) {
   return url;
 };
 
+var buildGA4GHURL = function( standardURL, chr, regionStart, regionEnd ) {
+    var url = standardURL || '';
+    if ( chr ) {
+        url += '?referenceName=' + chr;
+
+        if ( regionStart && regionEnd ) {
+            url += '&start=' + regionStart + '&end=' + regionEnd;
+        }
+    }
+
+  return url;
+}
+
 function BAMRangerFeatureSource ( bamSource ) {
     FeatureSourceBase.call(this);
     this.bamSource = bamSource;
     this.opts = {credentials: bamSource.credentials, preflight: bamSource.preflight, bamGroup: bamSource.bamGroup};
     this.cache = [];
     this.cacheLimit = 50;
+    this.ga4ghRegex = /api\/ga4gh/;
     this.init();
 }
 
@@ -1778,8 +1792,14 @@ BAMRangerFeatureSource.prototype.fetch = function(chr, regionStart, regionEnd, s
         thisB.notifyActivity();
         callback(null, featuresFromCache, 1000000000);
     } else {
-        var url  = buildRangerURL(thisB.bamSource.bamRangerURI, chr, regionStart, regionEnd);
-        var bamF = new URLFetchable(url, {credentials: thisB.opts.credentials});
+        var url;
+        if ( thisB.ga4ghRegex.test(thisB.bamSource.bamRangerURI) ) {
+            url = buildGA4GHURL(thisB.bamSource.bamRangerURI, chr, regionStart, regionEnd);
+        } else {
+            url = buildRangerURL(thisB.bamSource.bamRangerURI, chr, regionStart, regionEnd);
+        }
+        //var url  = buildRangerURL(thisB.bamSource.bamRangerURI, chr, regionStart, regionEnd);
+        var bamF = new URLFetchable(url, { credentials: thisB.opts.credentials });
         thisB.bamHolder = new Awaited();
         var thisBamHolder = thisB.bamHolder;
 
