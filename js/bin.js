@@ -222,7 +222,7 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                     if ( contentType && typeof contentType.trim === 'function' ) {
                         contentType = contentType.trim().toLowerCase();
                     }
-                    if ( contentType .startsWith('application/json'.toLowerCase()) ) {
+                    if ( contentType && contentType.startsWith('application/json') ) {
 
                         // TODO check if is always arraybuffer
                         try {
