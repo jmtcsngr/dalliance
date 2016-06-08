@@ -7,14 +7,14 @@
 <style>
 </style>
 
-<title>Human GRCh37 :: Dalliance</title>
+<title>Human HS37D5 :: Dalliance</title>
 <script language="javascript" src="../build/dalliance-all.js"></script>
 
 <script language="javascript">
   var b = new Browser({
     chr:          '22',
-    viewStart:    16099055,
-    viewEnd:      16099570,
+    viewStart:    16122797,
+    viewEnd:      16123578,
     cookieKey:    'human_hs37d5',
 
     coordSystem: {
@@ -26,7 +26,7 @@
     },
 
     sources:     [{name:                 'Genome',
-                   twoBitURI:            'http://localhost:35500/hs37d5.2bit',
+                   twoBitURI:            '/hs37d5.2bit',
                    tier_type:            'sequence',
                    provides_entrypoints: true,
                    pinned: true
@@ -36,46 +36,17 @@
                     desc:         "My bam range with GA4GH behind proxy",
                     bamRangerURI: "http://localhost:9080/npg_ranger/api/ga4gh/v.0.1/get/sample/EGAN00001287065",
                   },
-                  {
-                    name:         'BAM Ranger direct access',
-                    desc:         "My bam range",
-                    bamRangerURI: "http://localhost:33700/sample?accession=EGAN00001287065",
-                  },
-                  {
-                    name:         'BAM Ranger + ga4gh direct access',
-                    desc:         "My bam range",
-                    bamRangerURI: "http://localhost:33700/api/ga4gh/v.0.1/get/sample/EGAN00001287065",
-                  },
                 ],
 
     setDocumentTitle: true,
     uiPrefix: '../',
 
     fullScreen: true,
-
-    hubs: [
-            'http://www.biodalliance.org/datasets/testhub/hub.txt',
-            'http://ftp.ebi.ac.uk/pub/databases/ensembl/encode/integration_data_jan2011/hub.txt',
-            {url: 'http://vizhub.wustl.edu/VizHub/RoadmapReleaseAll.txt', label: 'Roadmap Epigenome'}
-           ]
   });
-
-
-  b.addFeatureInfoPlugin(function(f, info) {
-      info.add('Testing', 'This is a test!');
-  });
-
-  b.addViewListener(function(chr, min, max) {
-    var link = document.getElementById('enslink');
-    link.href = 'http://www.ensembl.org/Homo_sapiens/Location/View?r=' + chr + ':' + min + '-' + max;
-  });
-
 </script>
 </head>
 
 <body>
-<a href='http://www.ensembl.org/' id='enslink' target='_newtab'>Link to Ensembl</a>
 <div id='svgHolder'>Failed to load the Biodalliance genome browser.  Have you run "gulp"?</div>
 </body>
 </html>
-
