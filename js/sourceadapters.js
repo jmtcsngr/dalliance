@@ -1697,6 +1697,10 @@ var buildGA4GHURL = function( standardURL, chr, regionStart, regionEnd ) {
         if ( regionStart && regionEnd ) {
             url += '&start=' + regionStart + '&end=' + regionEnd;
         }
+
+        if ( ! /(format=)/.test(url) ) {
+            url += '&format=bam';
+        }
     }
 
   return url;
