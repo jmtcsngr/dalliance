@@ -154,10 +154,15 @@ URLFetchable.prototype.fetch = function(callback, opts) {
     var thisB = this;
 
     opts = opts || {};
-    var attempt       = opts.attempt || 1;
-    var redirects     = opts.redirects || 0;
-    var maxRedirects  = opts.maxRedirects || 3;
-    var maxAttempts   = opts.maxAttempts  || 3;
+    var attempt      = opts.attempt || 1;
+    var redirects    = opts.redirects || 0;
+    var maxRedirects = opts.maxRedirects || 3;
+    var maxAttempts  = opts.maxAttempts  || 3;
+    var reqAuth      = false;
+
+    if ( thisB.opts && thisB.opts.reqAuth ) {
+        reqAuth = thisB.opts.reqAuth;
+    }
 
     var truncatedLength = opts.truncatedLength;
     if ( attempt > maxAttempts ) {
@@ -183,6 +188,9 @@ URLFetchable.prototype.fetch = function(callback, opts) {
         var req = new XMLHttpRequest();
         var length;
         var url = this.url;
+        if ( reqAuth ) {
+            req.withCredentials = true;
+        }
         if ((isSafari || this.opts.salt) && url.indexOf('?') < 0) {
             url = url + '?salt=' + b64_sha1('' + Date.now() + ',' + (++seed));
         }
@@ -260,7 +268,8 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                                     thisB.url = newUrl;
                                     var newOpts = {
                                         attempt:   1,
-                                        redirects: redirects + 1
+                                        redirects: redirects + 1,
+                                        reqAuth:   reqAuth
                                     };
                                     return thisB.fetch(callback, newOpts);
                                 }
@@ -278,6 +287,7 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                             return thisB.fetch(callback, {
                                 attempt:         attempt + 1,
                                 redirects:       redirects,
+                                reqAuth:         reqAuth,
                                 truncatedLength: bl
                             });
                         } else {
@@ -291,6 +301,7 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                             return thisB.fetch(callback, {
                                 attempt:         attempt + 1,
                                 redirects:       redirects,
+                                reqAuth:         reqAuth,
                                 truncatedLength: r.length
                             });
                         } else {
@@ -300,7 +311,8 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                 } else {
                     return thisB.fetch(callback, {
                         attempt:   attempt + 1,
-                        redirects: redirects
+                        redirects: redirects,
+                        reqAuth:   reqAuth
                     });
                 }
             }

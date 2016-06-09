@@ -25,16 +25,34 @@
       ucscName: '',
     },
 
-    sources:     [{name:                 'Genome',
-                   twoBitURI:            '/hs37d5.2bit',
-                   tier_type:            'sequence',
-                   provides_entrypoints: true,
-                   pinned: true
+    sources:    [
+                  {
+                    name:                 'Genome',
+                    twoBitURI:            '/hs37d5.2bit',
+                    tier_type:            'sequence',
+                    provides_entrypoints: true,
+                    pinned: true
                   },
                   {
-                    name:         'BAM Ranger + GA4GH behind proxy',
-                    desc:         "My bam range with GA4GH behind proxy",
-                    bamRangerURI: "http://localhost:9080/npg_ranger/api/ga4gh/v.0.1/get/sample/EGAN00001287065",
+                    name:         'test through proxy GA4GH',
+                    desc:         'my test direct GA4GH',
+                    serviceType:  'ga4gh', //
+                    reqAuth:      true,
+                    bamRangerURI: 'http://localhost:9080/npg_ranger/ga4gh/v.0.1/get/sample/EGAN00001287065',
+                  },
+                  {
+                    name:         'test direct GA4GH',
+                    desc:         'my test direct GA4GH',
+                    serviceType:  'ga4gh', //
+                    reqAuth:      false,
+                    bamRangerURI: 'http://localhost:9080/ga4gh/v.0.1/get/sample/EGAN00001287065',
+                  },
+                  {
+                    name:         'test direct Ranger',
+                    desc:         'my test Ranger',
+                    serviceType:  'npg_ranger', //
+                    reqAuth:      false,
+                    bamRangerURI: 'http://localhost:9080/sample?accession=EGAN00001287065',
                   },
                 ],
 
