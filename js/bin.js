@@ -195,7 +195,6 @@ URLFetchable.prototype.fetch = function(callback, opts) {
             url = url + '?salt=' + b64_sha1('' + Date.now() + ',' + (++seed));
         }
         req.open('GET', url, true);
-        //req.overrideMimeType('text/plain; charset=x-user-defined'); // From original code
         if (this.end) {
             if (this.end - this.start > 100000000) {
                 throw 'Monster fetch!';
@@ -226,12 +225,9 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                         If req.response is a JSON try to get urls to forward to.
                         If it is raw bin data continue as usual.
                     */
-                    var contentType = req.getResponseHeader('Content-Type');
-                    if ( contentType && typeof contentType.trim === 'function' ) {
-                        contentType = contentType.trim().toLowerCase();
-                    }
-                    if ( contentType && contentType.startsWith('application/json') ) {
-
+                    var contentType = req.getResponseHeader('Content-Type') || '';
+                    contentType = contentType.trim().toLowerCase();
+                    if ( contentType.startsWith('application/json') ) {
                         try {
                             var decdStr = String.fromCharCode.apply(null, new Uint8Array(req.response));
                             var jsonResponse = JSON.parse(decdStr);
@@ -243,42 +239,40 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                                         null,
                                         'Forwarding to multiple URIs is not supported in this software version'
                                     );
-                                } else {
-                                    var newUrl = jsonResponse.urls[0];
-                                    if ( /^(https?:\/\/)/.test(newUrl) ) { // Absolute URI
-                                        var baseRegEx = /^(https?:\/\/[^\/]*)((\/)(.*))?$/;
-                                        var resRegEx = baseRegEx.exec(newUrl);
-                                        if ( resRegEx && resRegEx.length && resRegEx.length == 5 ) {
-                                            var baseURI = resRegEx[1]; // Protocol/Server/Port
-                                            var path    = resRegEx[2];
-                                            path = path.replace(':', encodeURIComponent(':'));
-                                            newUrl = baseURI + path;
-                                        }
-                                    } else if ( /^data.application/.test(newUrl) ) { // In-line data
-                                        // TODO implement
-                                    } else { // Relative URI
-                                        newUrl = newUrl.replace(':', encodeURIComponent(':'));
-                                        var baseRegEx = /(^https?:\/\/[^\/]*)/;
-                                        var resRegEx = baseRegEx.exec(thisB.url); // Get original protocol/server/port
-                                        if ( resRegEx && resRegEx.length && resRegEx.length == 2 ) {
-                                            newUrl = resRegEx[1] + newUrl;
-                                        }
-                                    }
-                                    thisB.url = newUrl;
-                                    var newOpts = {
-                                        attempt:   1,
-                                        redirects: redirects + 1,
-                                        reqAuth:   reqAuth
-                                    };
-                                    return thisB.fetch(callback, newOpts);
                                 }
+                                var newUrl = jsonResponse.urls[0];
+                                if ( /^(https?:\/\/)/.test(newUrl) ) { // Absolute URI
+                                    var baseRegEx = /^(https?:\/\/[^\/]*)((\/)(.*))?$/;
+                                    var resRegEx = baseRegEx.exec(newUrl);
+                                    if ( resRegEx && resRegEx.length && resRegEx.length == 5 ) {
+                                        var baseURI = resRegEx[1]; // Protocol/Server/Port
+                                        var path    = resRegEx[2];
+                                        path = path.replace(':', encodeURIComponent(':'));
+                                        newUrl = baseURI + path;
+                                    }
+                                } else if ( /^data.application/.test(newUrl) ) { // In-line data
+                                    // TODO implement
+                                } else { // Relative URI
+                                    newUrl = newUrl.replace(':', encodeURIComponent(':'));
+                                    var baseRegEx = /(^https?:\/\/[^\/]*)/;
+                                    var resRegEx = baseRegEx.exec(thisB.url); // Get original protocol/server/port
+                                    if ( resRegEx && resRegEx.length && resRegEx.length == 2 ) {
+                                        newUrl = resRegEx[1] + newUrl;
+                                    }
+                                }
+                                thisB.url = newUrl;
+                                var newOpts = {
+                                    attempt:   1,
+                                    redirects: redirects + 1,
+                                    reqAuth:   reqAuth
+                                };
+                                return thisB.fetch(callback, newOpts);
                             } else {
                                 return callback(null, 'Unable to redirect, no URI provided');
                             }
                         } catch (e) {
                             return callback(null, e.toString());
                         }
-
                     }
                     if ( req.response ) {
                         var bl = req.response.byteLength;
