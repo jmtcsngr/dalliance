@@ -232,7 +232,6 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                     }
                     if ( contentType && contentType.startsWith('application/json') ) {
 
-                        // TODO check if is always arraybuffer
                         try {
                             var decdStr = String.fromCharCode.apply(null, new Uint8Array(req.response));
                             var jsonResponse = JSON.parse(decdStr);
@@ -277,7 +276,7 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                                 return callback(null, 'Unable to redirect, no URI provided');
                             }
                         } catch (e) {
-                            return callback(null, e.toString()); //TODO toString
+                            return callback(null, e.toString());
                         }
 
                     }
