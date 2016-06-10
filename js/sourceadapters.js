@@ -1666,35 +1666,60 @@ Browser.prototype.sourceAdapterIsCapable = function(s, cap) {
 }
 
 var encodeChars = function (target, charsToEncode) {
-  target = target.split('');
-  for ( var i = 0; i < target.length; i++ ) {
-    if ( charsToEncode.indexOf(target[i]) !== -1 ) {
-      target[i] = encodeURIComponent(target[i]);
+    target = target.split('');
+    for ( var i = 0; i < target.length; i++ ) {
+      if ( charsToEncode.indexOf(target[i]) !== -1 ) {
+        target[i] = encodeURIComponent(target[i]);
+      }
     }
-  }
-  return target.join('');
+    return target.join('');
 };
 
-var buildRangerURL = function (standardURL, chr, regionStart, regionEnd) {
-  var url = standardURL || '';
-  url = encodeChars(url, '#');
-  if ( chr ) {
-    url += '&region=' + chr;
+var buildRangerURL = function ( standardURL, chr, regionStart, regionEnd ) {
+    var url = standardURL || '';
+    url = encodeChars(url, '#');
+    if ( chr ) {
+        url += '&region=' + chr;
 
-    if ( regionStart && regionEnd ) {
-      url += encodeURIComponent(':') + regionStart + '-' + regionEnd;
+        if ( regionStart && regionEnd ) {
+            url += encodeURIComponent(':') + regionStart + '-' + regionEnd;
+        }
     }
-  }
-  
+
   return url;
 };
+
+var buildGA4GHURL = function( standardURL, chr, regionStart, regionEnd ) {
+    var url = standardURL || '';
+    if ( chr ) {
+        url += '?referenceName=' + chr;
+
+        if ( regionStart && regionEnd ) {
+            url += '&start=' + regionStart + '&end=' + regionEnd;
+        }
+
+        if ( ! /(format=)/.test(url) ) {
+            url += '&format=bam';
+        }
+    }
+
+  return url;
+}
 
 function BAMRangerFeatureSource ( bamSource ) {
     FeatureSourceBase.call(this);
     this.bamSource = bamSource;
-    this.opts = {credentials: bamSource.credentials, preflight: bamSource.preflight, bamGroup: bamSource.bamGroup};
-    this.cache = [];
-    this.cacheLimit = 50;
+    var serviceType = bamSource.serviceType || 'npg_ranger';
+    var reqAuth     = bamSource.reqAuth     || false;
+    this.opts = {
+        credentials: bamSource.credentials,
+        preflight:   bamSource.preflight,
+        bamGroup:    bamSource.bamGroup
+    };
+    this.cache       = [];
+    this.cacheLimit  = 50;
+    this.serviceType = serviceType.trim().toLowerCase();
+    this.reqAuth     = reqAuth;
     this.init();
 }
 
@@ -1778,8 +1803,19 @@ BAMRangerFeatureSource.prototype.fetch = function(chr, regionStart, regionEnd, s
         thisB.notifyActivity();
         callback(null, featuresFromCache, 1000000000);
     } else {
-        var url  = buildRangerURL(thisB.bamSource.bamRangerURI, chr, regionStart, regionEnd);
-        var bamF = new URLFetchable(url, {credentials: thisB.opts.credentials});
+        var url;
+        if (thisB.serviceType !== 'npg_ranger' && thisB.serviceType !== 'ga4gh') {
+            return callback("Invalid service type");
+        }
+        if ( thisB.serviceType === 'npg_ranger' ) {
+            url = buildRangerURL(thisB.bamSource.bamRangerURI, chr, regionStart, regionEnd);
+        } else {
+            url = buildGA4GHURL(thisB.bamSource.bamRangerURI, chr, regionStart, regionEnd);
+        }
+        var bamF = new URLFetchable(url, {
+            credentials: thisB.opts.credentials,
+            reqAuth:     thisB.reqAuth
+        });
         thisB.bamHolder = new Awaited();
         var thisBamHolder = thisB.bamHolder;
 
