@@ -282,8 +282,9 @@ Browser.prototype.showTrackAdder = function(ev) {
 
     var modeButtonHolder = makeElement('ul', addModeButtons, {className: 'nav nav-tabs'}, {marginBottom: '0px'});
     popup.appendChild(modeButtonHolder);
-    
+
     var custURL, custName, custCS, custQuant, custFile, custUser, custPass;
+    var rangerReqAuth, rangerServiceType;
     var customMode = false;
     var dataToFinalize = null;
 
@@ -711,13 +712,32 @@ Browser.prototype.showTrackAdder = function(ev) {
         removeChildren(stabHolder);
 
         var customForm = makeElement('div', null, {},  {paddingLeft: '10px', paddingRight: '10px'});
-        customForm.appendChild(makeElement('h3', 'Add custom BAM data from server with ranger support'));
-        customForm.appendChild(makeElement('p', 'This interface is intended for adding custom ranger data source.'));
-                
+        customForm.appendChild(makeElement('h3', 'Add custom BAM data from server with NPG Ranger support'));
+        customForm.appendChild(makeElement('p', 'This interface is intended for adding custom NPG Ranger data source.'));
+
         customForm.appendChild(document.createTextNode('URL: '));
         customForm.appendChild(makeElement('br'));
-        custURL = makeElement('input', '', {size: 80, value: 'http://server:port/file?directory=/seq/folder&name=file.bam'}, {width: '100%'});
+        custURL = makeElement('input', '', {
+            id: 'ranger_cust_uri',
+            size: 80,
+            value: 'http://server:port/file?directory=/seq/folder&name=file.bam'
+        }, {
+            width: '100%'
+        });
         customForm.appendChild(custURL);
+        customForm.appendChild(makeElement('br'));
+        customForm.appendChild(makeElement('br'));
+
+        // Track requires auth
+        rangerReqAuth = makeElement('input', null, { id: 'ranger_req_auth', type: 'checkbox', checked: false });
+        customForm.appendChild(makeElement('p', ['Requires Autehtication: ', rangerReqAuth], {}, {}));
+
+        // Track type: plain NPG Ranger or GA4GH
+        rangerServiceType = makeElement('select', null, { id: 'ranger_service_type' });
+        rangerServiceType.appendChild(makeElement('option', 'NPG Ranger', { value: 'npg_ranger' }));
+        rangerServiceType.appendChild(makeElement('option', 'GA4GH', { value: 'ga4gh' }));
+        customForm.appendChild(makeElement('p', ['Service type: ', rangerServiceType], {}, {}));
+
         stabHolder.appendChild(customForm);
 
         custURL.focus();
@@ -743,7 +763,13 @@ Browser.prototype.showTrackAdder = function(ev) {
                 if (!/^.+:\/\//.exec(curi)) {
                     curi = 'http://' + curi;
                 }
-                var source = {bamRangerURI: curi};
+                var reqAuth     = rangerReqAuth.checked   || false;
+                var serviceType = rangerServiceType.value || 'npg_ranger';
+                var source = {
+                    bamRangerURI: curi,
+                    reqAuth:      reqAuth,
+                    serviceType:  serviceType
+                };
                 tryAddRanger(source);
             } else if (customMode === 'bin') {
                 var fileList = custFile.files;
@@ -1057,10 +1083,12 @@ Browser.prototype.showTrackAdder = function(ev) {
             } else {
                 nds.bamURI = s.uri;
                 nds.baiURI = s.indexUri;
-            } 
+            }
             return nds;
-        } else if ( s.tier_type === 'bamRanger' ) { 
+        } else if ( s.tier_type === 'bamRanger' ) {
             nds.bamRangerURI = s.bamRangerURI;
+            nds.reqAuth      = s.reqAuth || false;
+            nds.serviceType  = s.serviceType;
             return nds;
         } else if (s.tier_type == 'tabix') {
             nds.tier_type = 'tabix';
