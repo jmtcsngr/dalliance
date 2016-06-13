@@ -1699,7 +1699,7 @@ var buildGA4GHURL = function( standardURL, chr, regionStart, regionEnd ) {
         }
 
         if ( ! /(format=)/.test(url) ) {
-            url += '&format=bam';
+            url += '&format=BAM';
         }
     }
 
