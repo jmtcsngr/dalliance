@@ -232,6 +232,17 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                             var decdStr = String.fromCharCode.apply(null, new Uint8Array(req.response));
                             var jsonResponse = JSON.parse(decdStr);
 
+                            var prefix;
+                            var suffix;
+
+                            if ( jsonResponse.prefix && jsonResponse.prefix.length ) {
+                                prefix = quickDecode(jsonResponse.prefix);
+                            }
+
+                            if ( jsonResponse.suffix && jsonResponse.suffix.length ) {
+                                suffix = quickDecode(jsonResponse.suffix);
+                            }
+
                             // Find new url from forward instructions
                             if ( jsonResponse.urls && jsonResponse.urls.length ) {
                                 if ( jsonResponse.urls.length > 1 ) {
@@ -266,6 +277,12 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                                     redirects: redirects + 1,
                                     reqAuth:   reqAuth
                                 };
+                                if ( prefix ) {
+                                    newOpts.prefix = prefix;
+                                }
+                                if ( suffix ) {
+                                    newOpts.suffix = suffix;
+                                }
                                 return thisB.fetch(callback, newOpts);
                             } else {
                                 return callback(null, 'Unable to redirect, no URI provided');
@@ -277,36 +294,64 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                     if ( req.response ) {
                         var bl = req.response.byteLength;
                         if (length && length != bl && (!truncatedLength || bl != truncatedLength)) {
-                            return thisB.fetch(callback, {
+                            var newOpts = {
                                 attempt:         attempt + 1,
                                 redirects:       redirects,
                                 reqAuth:         reqAuth,
                                 truncatedLength: bl
-                            });
+                            };
+                            if ( opts.prefix ) {
+                                newOpts.prefix = opts.prefix;
+                            }
+                            if ( opts.suffic ) {
+                                newOpts.suffix = opts.suffix;
+                            }
+                            return thisB.fetch(callback, newOpts);
                         } else {
-                            return callback(req.response);
+                            var data = req.response;
+                            if ( opts.prefix ) {
+                                data = catBuffers(opts.prefix, data);
+                            }
+                            if ( opts.suffix ) {
+                                data = catBuffers(data, opts.suffix);
+                            }
+                            return callback(data);
                         }
                     } else if (req.mozResponseArrayBuffer) {
                         return callback(req.mozResponseArrayBuffer);
                     } else {
                         var r = req.responseText;
                         if (length && length != r.length && (!truncatedLength || r.length != truncatedLength)) {
-                            return thisB.fetch(callback, {
+                            var newOpts = {
                                 attempt:         attempt + 1,
                                 redirects:       redirects,
                                 reqAuth:         reqAuth,
                                 truncatedLength: r.length
-                            });
+                            };
+                            if ( opts.prefix ) {
+                                newOpts.prefix = opts.prefix;
+                            }
+                            if ( opts.suffic ) {
+                                newOpts.suffix = opts.suffix;
+                            }
+                            return thisB.fetch(callback, newOpts);
                         } else {
                             return callback(bstringToBuffer(req.responseText));
                         }
                     }
                 } else {
-                    return thisB.fetch(callback, {
+                    var newOpts = {
                         attempt:   attempt + 1,
                         redirects: redirects,
                         reqAuth:   reqAuth
-                    });
+                    };
+                    if ( opts.prefix ) {
+                        newOpts.prefix = opts.prefix;
+                    }
+                    if ( opts.suffic ) {
+                        newOpts.suffix = opts.suffix;
+                    }
+                    return thisB.fetch(callback, newOpts);
                 }
             }
         };
@@ -319,7 +364,14 @@ URLFetchable.prototype.fetch = function(callback, opts) {
     }
 }
 
-function bstringToBuffer(result) {
+function catBuffers( a, b ) {
+    var tmp = new Uint8Array(a.byteLength + b.byteLength);
+    tmp.set(new Uint8Array(a));
+    tmp.set(new Uint8Array(b), a.byteLength);
+    return tmp.buffer;
+}
+
+function bstringToBuffer( result ) {
     if (!result) {
         return null;
     }
@@ -329,6 +381,12 @@ function bstringToBuffer(result) {
         ba[i] = result.charCodeAt(i);
     }
     return ba.buffer;
+}
+
+function quickDecode ( encodedData ) {
+    var decodedData;
+    decodedData = bstringToBuffer(atob(encodedData)); //TODO replace atob
+    return decodedData;
 }
 
 // Read from Uint8Array
