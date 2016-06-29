@@ -262,10 +262,10 @@ Browser.prototype.showTrackAdder = function(ev) {
                 firstDefSources = ds;
             }
         })(g, groupedDefaults[g]);
-    }   
+    }
     var custButton = this.makeButton('DAS', 'Add arbitrary DAS data');
     addModeButtons.push(custButton);
-    var custRangerButton = this.makeButton('NPG Ranger', 'Binary data from NPG Ranger');
+    var custRangerButton = this.makeButton('GA4GH + NPG Ranger', 'Binary data from NPG Ranger');
     addModeButtons.push(custRangerButton);
     var binButton = this.makeButton('Binary', 'Add data in bigwig or bigbed format');
     addModeButtons.push(binButton);
@@ -712,8 +712,8 @@ Browser.prototype.showTrackAdder = function(ev) {
         removeChildren(stabHolder);
 
         var customForm = makeElement('div', null, {},  {paddingLeft: '10px', paddingRight: '10px'});
-        customForm.appendChild(makeElement('h3', 'Add custom BAM data from server with NPG Ranger support'));
-        customForm.appendChild(makeElement('p', 'This interface is intended for adding custom NPG Ranger data source.'));
+        customForm.appendChild(makeElement('h3', 'Add custom BAM data from server with GA4GH or NPG Ranger support'));
+        customForm.appendChild(makeElement('p', 'This interface is intended for adding custom data source with GA4GH or NPG Ranger support.'));
 
         customForm.appendChild(document.createTextNode('URL: '));
         customForm.appendChild(makeElement('br'));
