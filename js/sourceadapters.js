@@ -1814,7 +1814,8 @@ BAMRangerFeatureSource.prototype.fetch = function(chr, regionStart, regionEnd, s
         }
         var bamF = new URLFetchable(url, {
             credentials: thisB.opts.credentials,
-            reqAuth:     thisB.reqAuth
+            reqAuth:     thisB.reqAuth,
+            method:      'rangerRequest'
         });
         thisB.bamHolder = new Awaited();
         var thisBamHolder = thisB.bamHolder;

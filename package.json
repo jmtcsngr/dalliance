@@ -8,8 +8,9 @@
     "url": "git@github.com:dasmoth/dalliance.git"
   },
   "dependencies": {
+    "es6-promise": "~0.1.1",
     "jszlib": "dasmoth/jszlib",
-    "es6-promise": "~0.1.1"
+    "npg_ranger": "file:../npg_ranger"
   },
   "devDependencies": {
     "gulp-concat": "~2.2.0",

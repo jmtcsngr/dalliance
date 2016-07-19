@@ -15,6 +15,7 @@ if (typeof(require) !== 'undefined') {
 
     var sha1 = require('./sha1');
     var b64_sha1 = sha1.b64_sha1;
+    var RangerRequest = require('npg_ranger').RangerRequest;
 }
 
 function BlobFetchable(b) {
@@ -158,6 +159,7 @@ URLFetchable.prototype.fetch = function(callback, opts) {
     var redirects    = opts.redirects || 0;
     var maxRedirects = opts.maxRedirects || 3;
     var maxAttempts  = opts.maxAttempts  || 3;
+    var method       = this.opts.method || '';
     var reqAuth      = false;
 
     if ( thisB.opts && thisB.opts.reqAuth ) {
@@ -185,7 +187,13 @@ URLFetchable.prototype.fetch = function(callback, opts) {
             );
         }
 
-        var req = new XMLHttpRequest();
+        var req;
+        if ( method === 'rangerRequest' ) {
+            req = new RangerRequest();
+        } else {
+           req = new XMLHttpRequest();
+        }
+
         var length;
         var url = this.url;
         if ( reqAuth ) {
@@ -221,76 +229,6 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                     return callback(null, errorMessage);
                 }
                 if (req.status == 200 || req.status == 206) {
-                    /*
-                        If req.response is a JSON try to get urls to forward to.
-                        If it is raw bin data continue as usual.
-                    */
-                    var contentType = req.getResponseHeader('Content-Type') || '';
-                    contentType = contentType.trim().toLowerCase();
-                    if ( contentType.startsWith('application/json') ) {
-                        try {
-                            var decdStr = String.fromCharCode.apply(null, new Uint8Array(req.response));
-                            var jsonResponse = JSON.parse(decdStr);
-
-                            var prefix;
-                            var suffix;
-
-                            if ( jsonResponse.prefix && jsonResponse.prefix.length ) {
-                                prefix = quickDecode(jsonResponse.prefix);
-                            }
-
-                            if ( jsonResponse.suffix && jsonResponse.suffix.length ) {
-                                suffix = quickDecode(jsonResponse.suffix);
-                            }
-
-                            // Find new url from forward instructions
-                            if ( jsonResponse.urls && jsonResponse.urls.length ) {
-                                if ( jsonResponse.urls.length > 1 ) {
-                                    return callback(
-                                        null,
-                                        'Forwarding to multiple URIs is not supported in this software version'
-                                    );
-                                }
-                                var newUrl = jsonResponse.urls[0];
-                                if ( /^(https?:\/\/)/.test(newUrl) ) { // Absolute URI
-                                    var baseRegEx = /^(https?:\/\/[^\/]*)((\/)(.*))?$/;
-                                    var resRegEx = baseRegEx.exec(newUrl);
-                                    if ( resRegEx && resRegEx.length && resRegEx.length == 5 ) {
-                                        var baseURI = resRegEx[1]; // Protocol/Server/Port
-                                        var path    = resRegEx[2];
-                                        path = path.replace(':', encodeURIComponent(':'));
-                                        newUrl = baseURI + path;
-                                    }
-                                } else if ( /^data.application/.test(newUrl) ) { // In-line data
-                                    // TODO implement
-                                } else { // Relative URI
-                                    newUrl = newUrl.replace(':', encodeURIComponent(':'));
-                                    var baseRegEx = /(^https?:\/\/[^\/]*)/;
-                                    var resRegEx = baseRegEx.exec(thisB.url); // Get original protocol/server/port
-                                    if ( resRegEx && resRegEx.length && resRegEx.length == 2 ) {
-                                        newUrl = resRegEx[1] + newUrl;
-                                    }
-                                }
-                                thisB.url = newUrl;
-                                var newOpts = {
-                                    attempt:   1,
-                                    redirects: redirects + 1,
-                                    reqAuth:   reqAuth
-                                };
-                                if ( prefix ) {
-                                    newOpts.prefix = prefix;
-                                }
-                                if ( suffix ) {
-                                    newOpts.suffix = suffix;
-                                }
-                                return thisB.fetch(callback, newOpts);
-                            } else {
-                                return callback(null, 'Unable to redirect, no URI provided');
-                            }
-                        } catch (e) {
-                            return callback(null, e.toString());
-                        }
-                    }
                     if ( req.response ) {
                         var bl = req.response.byteLength;
                         if (length && length != bl && (!truncatedLength || bl != truncatedLength)) {
@@ -300,21 +238,9 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                                 reqAuth:         reqAuth,
                                 truncatedLength: bl
                             };
-                            if ( opts.prefix ) {
-                                newOpts.prefix = opts.prefix;
-                            }
-                            if ( opts.suffic ) {
-                                newOpts.suffix = opts.suffix;
-                            }
                             return thisB.fetch(callback, newOpts);
                         } else {
                             var data = req.response;
-                            if ( opts.prefix ) {
-                                data = catBuffers(opts.prefix, data);
-                            }
-                            if ( opts.suffix ) {
-                                data = catBuffers(data, opts.suffix);
-                            }
                             return callback(data);
                         }
                     } else if (req.mozResponseArrayBuffer) {
@@ -328,12 +254,6 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                                 reqAuth:         reqAuth,
                                 truncatedLength: r.length
                             };
-                            if ( opts.prefix ) {
-                                newOpts.prefix = opts.prefix;
-                            }
-                            if ( opts.suffic ) {
-                                newOpts.suffix = opts.suffix;
-                            }
                             return thisB.fetch(callback, newOpts);
                         } else {
                             return callback(bstringToBuffer(req.responseText));
@@ -345,12 +265,6 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                         redirects: redirects,
                         reqAuth:   reqAuth
                     };
-                    if ( opts.prefix ) {
-                        newOpts.prefix = opts.prefix;
-                    }
-                    if ( opts.suffic ) {
-                        newOpts.suffix = opts.suffix;
-                    }
                     return thisB.fetch(callback, newOpts);
                 }
             }
@@ -364,13 +278,6 @@ URLFetchable.prototype.fetch = function(callback, opts) {
     }
 }
 
-function catBuffers( a, b ) {
-    var tmp = new Uint8Array(a.byteLength + b.byteLength);
-    tmp.set(new Uint8Array(a));
-    tmp.set(new Uint8Array(b), a.byteLength);
-    return tmp.buffer;
-}
-
 function bstringToBuffer( result ) {
     if (!result) {
         return null;
@@ -381,12 +288,6 @@ function bstringToBuffer( result ) {
         ba[i] = result.charCodeAt(i);
     }
     return ba.buffer;
-}
-
-function quickDecode ( encodedData ) {
-    var decodedData;
-    decodedData = bstringToBuffer(atob(encodedData)); //TODO replace atob
-    return decodedData;
 }
 
 // Read from Uint8Array
