@@ -21,7 +21,7 @@
     "karma-chrome-launcher": "~0.1.2",
     "karma-jasmine": "~0.1.5",
     "gulp-rename": "~1.2.0",
-    "watchify": "~0.8.3",
+    "watchify": "3.7.0",
     "karma-bro": "~0.2.2",
     "closure-compiler": "~0.2.6"
   }
