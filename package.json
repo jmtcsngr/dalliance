@@ -10,11 +10,12 @@
   "dependencies": {
     "es6-promise": "~0.1.1",
     "jszlib": "dasmoth/jszlib",
+    "gulp": "~3.6.2",
+    "browserify": "13.0.1",
     "npg_ranger": "file:../npg_ranger"
   },
   "devDependencies": {
     "gulp-concat": "~2.2.0",
-    "gulp": "~3.6.2",
     "gulp-closure-compiler": "~0.2.3",
     "gulp-browserify": "~0.5.0",
     "karma": "~0.12.1",
