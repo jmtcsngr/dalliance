@@ -156,8 +156,6 @@ URLFetchable.prototype.fetch = function(callback, opts) {
 
     opts = opts || {};
     var attempt      = opts.attempt || 1;
-    var redirects    = opts.redirects || 0;
-    var maxRedirects = opts.maxRedirects || 3;
     var maxAttempts  = opts.maxAttempts  || 3;
     var method       = this.opts.method || '';
     var reqAuth      = false;
@@ -169,9 +167,6 @@ URLFetchable.prototype.fetch = function(callback, opts) {
     var truncatedLength = opts.truncatedLength;
     if ( attempt > maxAttempts ) {
         return callback(null, 'Maximum number of attempts to request data from url reached');
-    }
-    if ( redirects > maxRedirects ) {
-        return callback(null, 'Maximum number of request data redirects reached');
     }
 
     try {
@@ -191,7 +186,7 @@ URLFetchable.prototype.fetch = function(callback, opts) {
         if ( method === 'rangerRequest' ) {
             req = new RangerRequest();
         } else {
-           req = new XMLHttpRequest();
+            req = new XMLHttpRequest();
         }
 
         var length;
@@ -228,13 +223,17 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                                                       : 'Server Error ' + req.status;
                     return callback(null, errorMessage);
                 }
+                if ( req.status === 424 ) { // rangerRequest-related error
+                    var errorMessage = req.statusText ? req.statusText
+                                                      : 'Error during request ' + req.status;
+                    return callback(null, errorMessage);
+                }
                 if (req.status == 200 || req.status == 206) {
                     if ( req.response ) {
                         var bl = req.response.byteLength;
                         if (length && length != bl && (!truncatedLength || bl != truncatedLength)) {
                             var newOpts = {
                                 attempt:         attempt + 1,
-                                redirects:       redirects,
                                 reqAuth:         reqAuth,
                                 truncatedLength: bl
                             };
@@ -250,7 +249,6 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                         if (length && length != r.length && (!truncatedLength || r.length != truncatedLength)) {
                             var newOpts = {
                                 attempt:         attempt + 1,
-                                redirects:       redirects,
                                 reqAuth:         reqAuth,
                                 truncatedLength: r.length
                             };
@@ -262,7 +260,6 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                 } else {
                     var newOpts = {
                         attempt:   attempt + 1,
-                        redirects: redirects,
                         reqAuth:   reqAuth
                     };
                     return thisB.fetch(callback, newOpts);
