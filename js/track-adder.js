@@ -265,7 +265,7 @@ Browser.prototype.showTrackAdder = function(ev) {
     }
     var custButton = this.makeButton('DAS', 'Add arbitrary DAS data');
     addModeButtons.push(custButton);
-    var custRangerButton = this.makeButton('GA4GH + NPG Ranger', 'Binary data from NPG Ranger');
+    var custRangerButton = this.makeButton('GA4GH', 'Data from GA4GH server');
     addModeButtons.push(custRangerButton);
     var binButton = this.makeButton('Binary', 'Add data in bigwig or bigbed format');
     addModeButtons.push(binButton);
@@ -284,7 +284,7 @@ Browser.prototype.showTrackAdder = function(ev) {
     popup.appendChild(modeButtonHolder);
 
     var custURL, custName, custCS, custQuant, custFile, custUser, custPass;
-    var rangerReqAuth, rangerServiceType;
+    var rangerReqAuth;
     var customMode = false;
     var dataToFinalize = null;
 
@@ -712,15 +712,15 @@ Browser.prototype.showTrackAdder = function(ev) {
         removeChildren(stabHolder);
 
         var customForm = makeElement('div', null, {},  {paddingLeft: '10px', paddingRight: '10px'});
-        customForm.appendChild(makeElement('h3', 'Add custom BAM data from server with GA4GH or NPG Ranger support'));
-        customForm.appendChild(makeElement('p', 'This interface is intended for adding custom data source with GA4GH or NPG Ranger support.'));
+        customForm.appendChild(makeElement('h3', 'Add BAM data from server with GA4GH support'));
+        customForm.appendChild(makeElement('p', 'This interface is intended for adding a track pointing to a data source with GA4GH support.'));
 
         customForm.appendChild(document.createTextNode('URL: '));
         customForm.appendChild(makeElement('br'));
         custURL = makeElement('input', '', {
             id: 'ranger_cust_uri',
             size: 80,
-            value: 'http://server:port/file?directory=/seq/folder&name=file.bam'
+            value: 'http://server:port/path_to_id/read_group_set_id'
         }, {
             width: '100%'
         });
@@ -731,12 +731,6 @@ Browser.prototype.showTrackAdder = function(ev) {
         // Track requires auth
         rangerReqAuth = makeElement('input', null, { id: 'ranger_req_auth', type: 'checkbox', checked: false });
         customForm.appendChild(makeElement('p', ['Requires Autehtication: ', rangerReqAuth], {}, {}));
-
-        // Track type: plain NPG Ranger or GA4GH
-        rangerServiceType = makeElement('select', null, { id: 'ranger_service_type' });
-        rangerServiceType.appendChild(makeElement('option', 'NPG Ranger', { value: 'npg_ranger' }));
-        rangerServiceType.appendChild(makeElement('option', 'GA4GH', { value: 'ga4gh' }));
-        customForm.appendChild(makeElement('p', ['Service type: ', rangerServiceType], {}, {}));
 
         stabHolder.appendChild(customForm);
 
@@ -763,8 +757,8 @@ Browser.prototype.showTrackAdder = function(ev) {
                 if (!/^.+:\/\//.exec(curi)) {
                     curi = 'http://' + curi;
                 }
-                var reqAuth     = rangerReqAuth.checked   || false;
-                var serviceType = rangerServiceType.value || 'npg_ranger';
+                var reqAuth     = rangerReqAuth.checked || false;
+                var serviceType = 'ga4gh';
                 var source = {
                     bamRangerURI: curi,
                     reqAuth:      reqAuth,
@@ -1150,12 +1144,12 @@ Browser.prototype.showTrackAdder = function(ev) {
             }
         });
     }
-    
+
     var tryAddRanger = function(source) {
         source.name      = '';
         source.tier_type = 'bamRanger';
         var nds = makeSourceConfig(source);
-        nds.name = 'BAM Ranger ' + new Date().getTime();
+        nds.name = 'GA4GH ' + new Date().getTime();
         thisB.addTier(nds);
     };
 
