@@ -15,6 +15,7 @@ if (typeof(require) !== 'undefined') {
 
     var sha1 = require('./sha1');
     var b64_sha1 = sha1.b64_sha1;
+    var RangerRequest = require('npg_ranger').RangerRequest;
 }
 
 function BlobFetchable(b) {
@@ -155,9 +156,8 @@ URLFetchable.prototype.fetch = function(callback, opts) {
 
     opts = opts || {};
     var attempt      = opts.attempt || 1;
-    var redirects    = opts.redirects || 0;
-    var maxRedirects = opts.maxRedirects || 3;
     var maxAttempts  = opts.maxAttempts  || 3;
+    var method       = this.opts.method || '';
     var reqAuth      = false;
 
     if ( thisB.opts && thisB.opts.reqAuth ) {
@@ -167,9 +167,6 @@ URLFetchable.prototype.fetch = function(callback, opts) {
     var truncatedLength = opts.truncatedLength;
     if ( attempt > maxAttempts ) {
         return callback(null, 'Maximum number of attempts to request data from url reached');
-    }
-    if ( redirects > maxRedirects ) {
-        return callback(null, 'Maximum number of request data redirects reached');
     }
 
     try {
@@ -185,7 +182,13 @@ URLFetchable.prototype.fetch = function(callback, opts) {
             );
         }
 
-        var req = new XMLHttpRequest();
+        var req;
+        if ( method === 'rangerRequest' ) {
+            req = new RangerRequest();
+        } else {
+            req = new XMLHttpRequest();
+        }
+
         var length;
         var url = this.url;
         if ( reqAuth ) {
@@ -220,93 +223,46 @@ URLFetchable.prototype.fetch = function(callback, opts) {
                                                       : 'Server Error ' + req.status;
                     return callback(null, errorMessage);
                 }
+                if ( req.status === 424 ) { // rangerRequest-related error
+                    var errorMessage = req.statusText ? req.statusText
+                                                      : 'Error during request ' + req.status;
+                    return callback(null, errorMessage);
+                }
                 if (req.status == 200 || req.status == 206) {
-                    /*
-                        If req.response is a JSON try to get urls to forward to.
-                        If it is raw bin data continue as usual.
-                    */
-                    var contentType = req.getResponseHeader('Content-Type') || '';
-                    contentType = contentType.trim().toLowerCase();
-                    if ( contentType.startsWith('application/json') ) {
-                        try {
-                            var decdStr = String.fromCharCode.apply(null, new Uint8Array(req.response));
-                            var jsonResponse = JSON.parse(decdStr);
-
-                            // Find new url from forward instructions
-                            if ( jsonResponse.urls && jsonResponse.urls.length ) {
-                                if ( jsonResponse.urls.length > 1 ) {
-                                    return callback(
-                                        null,
-                                        'Forwarding to multiple URIs is not supported in this software version'
-                                    );
-                                }
-                                var newUrl = jsonResponse.urls[0];
-                                if ( /^(https?:\/\/)/.test(newUrl) ) { // Absolute URI
-                                    var baseRegEx = /^(https?:\/\/[^\/]*)((\/)(.*))?$/;
-                                    var resRegEx = baseRegEx.exec(newUrl);
-                                    if ( resRegEx && resRegEx.length && resRegEx.length == 5 ) {
-                                        var baseURI = resRegEx[1]; // Protocol/Server/Port
-                                        var path    = resRegEx[2];
-                                        path = path.replace(':', encodeURIComponent(':'));
-                                        newUrl = baseURI + path;
-                                    }
-                                } else if ( /^data.application/.test(newUrl) ) { // In-line data
-                                    // TODO implement
-                                } else { // Relative URI
-                                    newUrl = newUrl.replace(':', encodeURIComponent(':'));
-                                    var baseRegEx = /(^https?:\/\/[^\/]*)/;
-                                    var resRegEx = baseRegEx.exec(thisB.url); // Get original protocol/server/port
-                                    if ( resRegEx && resRegEx.length && resRegEx.length == 2 ) {
-                                        newUrl = resRegEx[1] + newUrl;
-                                    }
-                                }
-                                thisB.url = newUrl;
-                                var newOpts = {
-                                    attempt:   1,
-                                    redirects: redirects + 1,
-                                    reqAuth:   reqAuth
-                                };
-                                return thisB.fetch(callback, newOpts);
-                            } else {
-                                return callback(null, 'Unable to redirect, no URI provided');
-                            }
-                        } catch (e) {
-                            return callback(null, e.toString());
-                        }
-                    }
                     if ( req.response ) {
                         var bl = req.response.byteLength;
                         if (length && length != bl && (!truncatedLength || bl != truncatedLength)) {
-                            return thisB.fetch(callback, {
+                            var newOpts = {
                                 attempt:         attempt + 1,
-                                redirects:       redirects,
                                 reqAuth:         reqAuth,
                                 truncatedLength: bl
-                            });
+                            };
+                            return thisB.fetch(callback, newOpts);
                         } else {
-                            return callback(req.response);
+                            var data = req.response;
+                            return callback(data);
                         }
                     } else if (req.mozResponseArrayBuffer) {
                         return callback(req.mozResponseArrayBuffer);
                     } else {
                         var r = req.responseText;
                         if (length && length != r.length && (!truncatedLength || r.length != truncatedLength)) {
-                            return thisB.fetch(callback, {
+                            var newOpts = {
                                 attempt:         attempt + 1,
-                                redirects:       redirects,
                                 reqAuth:         reqAuth,
                                 truncatedLength: r.length
-                            });
+                            };
+                            return thisB.fetch(callback, newOpts);
                         } else {
                             return callback(bstringToBuffer(req.responseText));
                         }
                     }
                 } else {
-                    return thisB.fetch(callback, {
+                    var newOpts = {
                         attempt:   attempt + 1,
-                        redirects: redirects,
                         reqAuth:   reqAuth
-                    });
+                    };
+                    return thisB.fetch(callback, newOpts);
                 }
             }
         };
@@ -319,7 +275,7 @@ URLFetchable.prototype.fetch = function(callback, opts) {
     }
 }
 
-function bstringToBuffer(result) {
+function bstringToBuffer( result ) {
     if (!result) {
         return null;
     }
