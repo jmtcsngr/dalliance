@@ -5,15 +5,17 @@ Dalliance with NPG_Ranger support
 About
 =====
 
-This fork of the original **Dalliance** adds support for interaction with a
-`NPG Ranger <https://github.com/wtsi-npg/npg_ranger>`_ server. It was
+This fork of the original `Dalliance <https://github.com/dasmoth/dalliance>`_ adds
+support for interaction with
+
+ `NPG Ranger <https://github.com/wtsi-npg/npg_ranger>`_ server. It was
 branched from version 0.13.x.
 
 Requirements
 ============
 
 This software relies on Node.js, npm and Gulp for building sources and generating a bundle.
-It has been tested with a moder version of nodejs (4.4.2).
+It has been tested with a modern version (4.4.2) of Node.js.
 
 Install
 =======
@@ -97,8 +99,8 @@ Progress
 * User can add new **NPG Ranger** tracks using *NPG Ranger* option in add tracks
   menu
 * Works with Apache basic auth
-* Our reference are supported if they are in 2bit format (output from
-  faToTwoBit)
+* References in 2bit format (output from faToTwoBit distributed as part of
+  `Blat <https://genome.ucsc.edu/goldenPath/help/blatSpec.html>`_)
 * Basic cache for zoom in, delay/accumulate multiple fast zooming (out) requests
   to mitigate risk of flooding server.
 
