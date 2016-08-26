@@ -5,16 +5,28 @@ Dalliance with NPG_Ranger support
 About
 =====
 
-This fork of the original `Dalliance <https://github.com/dasmoth/dalliance>`_ adds
-support for interaction with
+This fork of the original `Dalliance <https://github.com/dasmoth/dalliance>`_
+(v0.13.x) adds support for tracks based on the streaming API of the
+`GA4GH <http://ga4gh.org>`_ initiative (GA4GH Directory API and Streaming). Data in
+BAM format from the streaming API differs from previously supported BAM tracks
+because it lacks of an index (BAI file). Ranges are specified in a specially crafted
+request to the API. From the API response is possible to build a BAM file with data
+included in the range.
 
- `NPG Ranger <https://github.com/wtsi-npg/npg_ranger>`_ server. It was
-branched from version 0.13.x.
+The abstraction of the *GA4GH streaming API* is provided by a Node.js http client
+developed as part of the `NPG Ranger <https://github.com/wtsi-npg/npg_ranger>`_
+package.
+
+The support for the new track is compatible with previously available tracks. It
+should be possible to display them side by side.
+
+This version of dalliance has been tested with a number of available *GA4GH streaming
+API* compliant servers.
 
 Requirements
 ============
 
-This software relies on Node.js, npm and Gulp for building sources and generating a bundle.
+This software relies on Node.js, npm and Gulp to build sources and generate a bundle.
 It has been tested with a modern version (4.4.2) of Node.js.
 
 Install
@@ -93,34 +105,22 @@ and probably flush things created in that location
 Progress
 ========
 
-* Can display data directly from **NPG Ranger** with a static genome reference
+* Can display data from **GA4GH** streaming API compliant servers
+* Can display data directly from **NPG Ranger**
 * Can display side by side data from other supported sources and data from
-  **NPG Ranger**
-* User can add new **NPG Ranger** tracks using *NPG Ranger* option in add tracks
-  menu
+  **GA4GH**/**NPG Ranger**
+* User can add new **GA4GH** tracks using *GA4GH* option in add tracks menu
 * Works with Apache basic auth
 * References in 2bit format (output from faToTwoBit distributed as part of
-  `Blat <https://genome.ucsc.edu/goldenPath/help/blatSpec.html>`_)
+  `Blat software package <https://genome.ucsc.edu/goldenPath/help/blatSpec.html>`_)
 * Basic cache for zoom in, delay/accumulate multiple fast zooming (out) requests
-  to mitigate risk of flooding server.
+  to mitigate risk of flooding server
 
 Pending
 =======
 
-#. Finalise work to be able to add **NPG Ranger** tracks. Currently you can add
-   But we need a way to allow to change reference. Have gui to specify
+#. A way for the user to switch reference may be needed. Have gui to specify
    reference?
-
-#. Using a single point of request (Apache) for static files and **NPG Ranger**
-   (with reverse proxy).
-
-   * Using a **NPG Ranger** server with CORS configuration should fix the issue.
-     Does not seem to work properly if using Apache as reverse proxy. But it
-     works if using direct requests.
-
-#. Further work is needed to change references
-
-   * Automatic reference from study?
 
 #. Cache is currently cleaning itself considering only number of regions in
    cache. Because different regions may have different densities of features,
