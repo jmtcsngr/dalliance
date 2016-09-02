@@ -23,7 +23,8 @@ gulp.task('build-main', function() {
   gulp.src('js/exports.js')
   .pipe(browserify({
     debug: true,
-    nobuiltins: true
+    nobuiltins: true,
+    ignore: ['winston']
   }))
   .pipe(rename('dalliance-all.js'))
   .pipe(gulp.dest('build/'));
@@ -38,7 +39,7 @@ gulp.task('compile-worker', function() {
   .pipe(rename('worker-all.js'))
   .pipe(gulp.dest('tmp/'))
   // .pipe(gif(!isDev, closure()))   // Doesn't work
-  .pipe(closure({compilerPath: 'node_modules/closure-compiler/lib/vendor/compiler.jar', 
+  .pipe(closure({compilerPath: 'node_modules/closure-compiler/lib/vendor/compiler.jar',
                  fileName: 'worker-all.js',
                  compilerFlags: {
                     language_in: 'ECMASCRIPT5'
@@ -55,7 +56,7 @@ gulp.task('compile-main', function() {
   .pipe(rename('dalliance-all.js'))
   .pipe(gulp.dest('tmp/'))
   // .pipe(gif(!isDev, closure()))   // Doesn't work
-  .pipe(closure({compilerPath: 'node_modules/closure-compiler/lib/vendor/compiler.jar', 
+  .pipe(closure({compilerPath: 'node_modules/closure-compiler/lib/vendor/compiler.jar',
                  fileName: 'dalliance-all.js',
                  compilerFlags: {
                     language_in: 'ECMASCRIPT5'
