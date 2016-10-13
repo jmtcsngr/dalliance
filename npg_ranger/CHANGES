@@ -1,5 +1,7 @@
 LIST OF CHANGES for dalliance project
 
+release 0.4.0
+ - upgrading npg_ranger to 0.4.x from 0.3.x
  - upgrading gulp to 3.9.1 from ~3.6.2
  - upgrading browserify to 13.1.0 from 13.0.1
  - upgrading glup_concat to 2.6.0 from ~2.2.0
