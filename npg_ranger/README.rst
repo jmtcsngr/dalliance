@@ -27,7 +27,7 @@ Requirements
 ============
 
 This software relies on Node.js, npm and Gulp to build sources and generate a bundle.
-It has been tested with a modern version (4.4.2) of Node.js.
+It has been tested with a modern version (4.5.0) of Node.js.
 
 Install
 =======
