@@ -10,13 +10,13 @@
   "dependencies": {
     "es6-promise": "~0.1.1",
     "jszlib": "dasmoth/jszlib",
-    "gulp": "~3.6.2",
-    "browserify": "13.0.1",
+    "gulp": "3.9.1",
+    "browserify": "13.1.0",
     "npg_ranger": "0.4.x"
   },
   "devDependencies": {
-    "gulp-concat": "~2.2.0",
-    "gulp-closure-compiler": "~0.2.3",
+    "gulp-concat": "2.6.0",
+    "gulp-closure-compiler": "0.4.0",
     "gulp-browserify": "~0.5.0",
     "karma": "~0.12.1",
     "karma-chrome-launcher": "~0.1.2",
