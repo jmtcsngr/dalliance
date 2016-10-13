@@ -1,4 +1,8 @@
 LIST OF CHANGES for dalliance project
 
+release 0.4.0
+ - upgrade npg_ranger to 0.4.0 from 0.3.0
+
+release 0.3.0
  - npg_ranger from npm package
 
