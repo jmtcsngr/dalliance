@@ -1,6 +1,6 @@
 /* -*- mode: javascript; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 
-// 
+//
 // Dalliance Genome Explorer
 // (c) Thomas Down 2006-2014
 //
@@ -13,6 +13,7 @@ var sa = require('./sourceadapters');
 var utils = require('./utils');
 var das = require('./das');
 var sc = require('./sourcecompare');
+var npg_ranger = require('npg_ranger');
 
 window.Browser = browser.Browser;
 window.sourcesAreEqual = sc.sourcesAreEqual;
@@ -34,3 +35,6 @@ window.DASGroup = das.DASGroup;
 window.DASStylesheet = das.DASStylesheet;
 window.DASStyle = das.DASStyle;
 window.DASSource = das.DASSource;    // Pre-0.8 configurations used this.  Still some around...
+
+// npg_ranger
+window.uiclient  = npg_ranger.uiclient;
