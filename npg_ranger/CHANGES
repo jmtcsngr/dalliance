@@ -1,5 +1,9 @@
 LIST OF CHANGES for dalliance project
 
+release 0.7.0
+ - upgrading npg_ranger to 0.7.x from 0.6.x
+ - expose uiclient in exports.js
+
 release 0.6.0
  - upgrading npg_ranger to 0.6.x from 0.4.x
  - upgrading browserify to 13.1.1 from 13.1.0
