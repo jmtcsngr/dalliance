@@ -12,7 +12,7 @@
     "jszlib": "dasmoth/jszlib",
     "gulp": "3.9.1",
     "browserify": "13.1.1",
-    "npg_ranger": "1.0.x"
+    "npg_ranger": "1.2.x"
   },
   "devDependencies": {
     "gulp-concat": "2.6.0",

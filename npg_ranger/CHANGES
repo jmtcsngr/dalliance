@@ -1,5 +1,8 @@
 LIST OF CHANGES for dalliance project
 
+release 1.2.0
+ - upgrading npg_ranger to 1.2.0 from 1.0.0
+
 release 1.0.0
  - upgrading npg_ranger to 1.0.0 from 0.7.x
 
